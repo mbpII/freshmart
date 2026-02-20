@@ -29,10 +29,11 @@ The client wants a inventory management system for there grocery store. The syst
 
 | Epic ID | Name | Description | Business Value |
 |---------|------|-------------|----------------|
-| EPIC-01 | [Epic Name] | [One-sentence description] | [Why it matters] |
-| EPIC-02 | [Epic Name] | [One-sentence description] | [Why it matters] |
-| EPIC-03 | [Epic Name] | [One-sentence description] | [Why it matters] |
-
+| EPIC-01 | [Inventory Management] | [add/remove and mark product as discounted ] | [Allows accurate inventory tracking so the business always knows current stock levels and can make informed purchasing decisions] |
+| EPIC-02 | [Inventory Monitoring and Alerting] | [will alert the user based on the current stock of the product being low] | [This can allow the buisness to know when products are restock, meaning higher conversion of customers.] |
+| EPIC-03 | [Analytics] | [track the velocity of sale] | [this will allow the buisness to know how to handling and order future stock, based on current trends better serving the customor needs.] |
+| EPIC-04 | [Liquidation/Expiration Handling] | [suggest recomendations to put items on sale based on proximity to there expiration date] | [this will prevent the grocer from selling items that  have gone bad, and other similar disaterous outcomes] |
+| EPIC-05 | [Reporting] | [handling of the ] | [this will prevent the grocer from selling items that  have gone bad, and other similar disaterous outcomes] |
 ---
 
 ## 4. User Stories by Epic
@@ -116,7 +117,21 @@ The client wants a inventory management system for there grocery store. The syst
 
 ---
 
-## 6. Wireframes
+## 6. Future Considerations
+
+<!-- Features and capabilities identified as valuable but not part of the current roadmap. These inform architectural decisions without expanding current scope. -->
+
+### Reporting Infrastructure
+
+**Status:** Out of Scope for Current Roadmap
+
+**Rationale:** While the system architecture will support future reporting enhancements (as noted in requirements), full reporting capabilities are not included in the initial deliverables. The current epics focus on operational inventory management. However, the database schema and API design should accommodate future reporting features without requiring significant refactoring.
+
+**Future Value:** Once basic inventory operations are stable, reporting will enable the business to analyze long-term trends, identify seasonal patterns, and optimize overall store performance.
+
+---
+
+## 7. Wireframes
 
 <!-- Reference your draw.io screens here. Each wireframe should map back to specific stories — "this screen supports IM-01, IM-02, and IM-04." -->
 
