@@ -10,14 +10,13 @@ The client wants a inventory management system for there grocery store. The syst
 ## 2. Assumptions & Open Questions
 
 ### Assumptions
-- [Starting from scratch]
-- [Assuming there will be one user (this is unlikely but can be extensible)]
-- [Assumption 3]
+- Starting from scratch
+- Assuming there will be one user (this is unlikely but can be extensible)
+- This is just one store/location 
 
 ### Open Questions
-1. **[What system does the client currently have ?]** — [Based on what they are currently using this could what needs to be built, if they have a current digital system I need only to integrate with it, then add the features they are missing, I could also have a better frame of reference of what the system should work like by having a demonstration.]
-2. **[Who will be the main user of this system ? stockers, managers, cashiers, associates, or some other role/position ]** — [By knowing this it can help me better scope the user stories.]
-3. **[Question 3]** — [Context/why it matters]
+1. **What system does the client currently have?** — Based on what they are currently using this could what needs to be built, if they have a current digital system I need only to integrate with it, then add the features they are missing, I could also have a better frame of reference of what the system should work like by having a demonstration.
+2. **Who will be the main user of this system?** (stockers, managers, cashiers, associates, or some other role/position) — By knowing this it can help me better scope the user stories.
 
 ---
 
@@ -25,8 +24,8 @@ The client wants a inventory management system for there grocery store. The syst
 
 | Epic ID | Name | Description | Business Value |
 |---------|------|-------------|----------------|
-| EPIC-01 | [Inventory Management] | [add/remove and mark product as discounted ] | [Allows accurate inventory tracking so the business always knows current stock levels and can make informed purchasing decisions] |
-| EPIC-02 | [Inventory Monitoring and Alerting] | [will alert the user based on the current stock of the product being low] | [This can allow the buisness to know when products are restock, meaning higher conversion of customers.] |
+| EPIC-01 | Inventory Management | Add/remove and mark product as discounted | Allows accurate inventory tracking so the business always knows current stock levels and can make informed purchasing decisions |
+| EPIC-02 | Inventory Monitoring and Alerting | Will alert the user based on the current stock of the product being low | This can allow the buisness to know when products are restock, meaning higher conversion of customers. |
 | EPIC-03 | Analytics | Track the velocity of sale | Allows the business to know how to handle and order future stock based on current trends, better serving customer needs |
 | EPIC-04 | Liquidation/Expiration Handling | Suggest recommendations to put items on sale based on proximity to their expiration date | Prevents the grocer from selling items that have gone bad and other similar disastrous outcomes |
 | EPIC-05 | Reporting | Handling of the reporting infrastructure | Provides extensible foundation for future reporting capabilities |
@@ -62,8 +61,8 @@ The client wants a inventory management system for there grocery store. The syst
 
 | ID | Role | Story | So That | Acceptance Criteria | Priority |
 |----|------|-------|---------|-------------------|----------|
-| EPIC-04-01 | As a user | I want the system to flag food products approaching their expiration date | So that I can take action before products expire and become unsellable | - Products are flagged at a configurable number of days before expiration (default: 7 days)<br>- Flagged products appear in a dedicated "expiring soon" view<br>- Already-expired products are visually distinct from approaching-expiration | Must Have |
-| EPIC-04-02 | As a user | I want the system to suggest a discount for products approaching expiration based on remaining shelf life | So that I can move product before it goes bad without manually calculating markdowns | - Suggestion includes a recommended discount percentage<br>- Closer expiration results in a steeper suggested discount<br>- I can accept, modify, or reject the suggestion before it applies | Must Have |
+| EPIC-04-01 | As a user | I want the system to handle food products approaching their expiration date | So that I can take action before products expire and become unsellable | - Products are flagged at a configurable number of days before expiration (default: 7 days)<br>- Flagged products appear to the user<br>- Already expired products are distinct from approaching expiration | Must Have |
+| EPIC-04-02 | As a user | I want the system to suggest a discount for products nearing expiration | So that I can reduce waste and increase the chance of selling them before they expire | - Suggested discount is based on remaining shelf life<br>- Products closer to expiration receive a steeper suggested discount<br>- Suggested discount percentage is displayed to the user | Should Have |
 ---
 
 ## 5. Roadmap
@@ -74,9 +73,9 @@ The client wants a inventory management system for there grocery store. The syst
 [Description of deliverables]
 
 **Stories covered:**
-- [EPIC-01]-01
-- [EPIC-01]-02
-- [EPIC-02]-01
+- EPIC-01-01
+- EPIC-01-02
+- EPIC-02-01
 
 **Dependencies:**
 - [Dependency 1]
