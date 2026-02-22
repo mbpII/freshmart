@@ -58,11 +58,15 @@ The client wants a inventory management system for there grocery store. The syst
 | EPIC-03-02 | As a user | I want to see the delta between the most recent week and the previous week | So that I can quickly quantify whether sales are accelerating or declining | - Delta (percentage change) is displayed<br>- Change is visually indicated (up/down) | Should Have |
 | EPIC-03-03 | As a user | I want to adjust the time period used to calculate sales velocity | So that I can analyze longer or shorter trends | - Time period is selectable (7, 30, 90 days)<br>- Chart updates when time period changes | Should Have |
 
+### Epic: EPIC-04 Liquidation/Expiration Handling
+
+| ID | Role | Story | So That | Acceptance Criteria | Priority |
+|----|------|-------|---------|-------------------|----------|
+| EPIC-04-01 | As a user | I want the system to flag food products approaching their expiration date | So that I can take action before products expire and become unsellable | - Products are flagged at a configurable number of days before expiration (default: 7 days)<br>- Flagged products appear in a dedicated "expiring soon" view<br>- Already-expired products are visually distinct from approaching-expiration | Must Have |
+| EPIC-04-02 | As a user | I want the system to suggest a discount for products approaching expiration based on remaining shelf life | So that I can move product before it goes bad without manually calculating markdowns | - Suggestion includes a recommended discount percentage<br>- Closer expiration results in a steeper suggested discount<br>- I can accept, modify, or reject the suggestion before it applies | Must Have |
 ---
 
 ## 5. Roadmap
-
-<!-- Lay out your increments in order: What it delivers, Which stories it covers (reference the IDs), Dependencies, Why it's first. -->
 
 ### Increment 1 — [Name]
 
@@ -118,8 +122,6 @@ The client wants a inventory management system for there grocery store. The syst
 
 ## 6. Future Considerations
 
-<!-- Features and capabilities identified as valuable but not part of the current roadmap. These inform architectural decisions without expanding current scope. -->
-
 ### Reporting Infrastructure
 
 **Status:** Out of Scope for Current Roadmap
@@ -131,8 +133,6 @@ The client wants a inventory management system for there grocery store. The syst
 ---
 
 ## 7. Wireframes
-
-<!-- Reference your draw.io screens here. Each wireframe should map back to specific stories — "this screen supports IM-01, IM-02, and IM-04." -->
 
 ### Wireframe: [Screen Name]
 
@@ -194,5 +194,3 @@ The client wants a inventory management system for there grocery store. The syst
 | **SKU** | Stock Keeping Unit - a unique identifier for each product type |
 
 ---
-
-*Last updated: [Date]*
