@@ -1,25 +1,33 @@
+# Project Overview
 
+The client wants an inventory management system for **their** grocery store. The system is to handle/track inventory and discounts of both food and non-food products, and will also need to handle alerts for low stock states, tracking current inventory sales rates relative to previous sales, and suggest discounts on products approaching end of shelf life. Along with extensibility for reporting.
+
+## Purpose of This Document
+This document represents **Step One** of the Feature23 coding exercise: the requirements plan for client review with John Dupper (jdupper@feature23.com) before development begins. As the exercise specifies, development commences only after client review and approval of this plan. Markdown is used for easy conversion to other formats.
 
 ---
 
-## 1. Project Overview
+## 1. Introduction
 
-The client wants a inventory management system for there grocery store. The system is to handle/track inventory and discounts of both food and non-food products, the will also need to be alerts handling states of low stock, tracking on current inventory sales rates relative to previous sales, suggest discounts on products approaching end of shelf life. Along with exetensibility for reportin reporting. 
+**Client:** FreshMart Grocery - a regional grocery store chain operating **4 locations in Springfield, Colorado**
+**Current State:** Each store uses separate Excel spreadsheets for manual inventory tracking
+**Goal:** Replace Excel-based process with a simple web-based inventory management system
+**Scope:** Multi-store support with role-based access for Store Managers and Stock Associates
 
-## Note:
-This document is a checkpoint for alignment, not a final deliverable. Feedback is welcome before I iterate further. Markdown is used for easy conversion to other formats.
 ---
 
-## 2. Assumptions & Open Questions
+## 2. Assumptions & Client Meeting Notes
 
 ### Assumptions
-- Starting from scratch
-- Assuming there will be one user (this is unlikely but can be extensible)
-- This is just one store/location 
+- **4 store locations** in Springfield, Colorado using StoreID schema: 101 Downtown, 102 Northside, 103 Westside, 104 Riverside
+- **Multi-store architecture**: Per-store inventory with shared Product catalog
+- **Three user roles**: Store Managers (inventory oversight), Stock Associates (shipment handling), Corporate Staff (cross-store reporting - future)
+- **Replacing Excel spreadsheets**: Current manual process at each store becomes web-based system
+- **Transaction schema**: SALE, RECEIVE, ADJUSTMENT types explicitly required
+- **Product schema** follows Excel structure: UPC, UnitCost, RetailPrice, IsOnSale, SalePrice, ExpirationDate, ReorderThreshold, ReorderQuantity, IsFood
 
-### Open Questions
-1. **What system does the client currently have?** — Based on what they are currently using this could what needs to be built, if they have a current digital system I need only to integrate with it, then add the features they are missing, I could also have a better frame of reference of what the system should work like by having a demonstration.
-2. **Who will be the main user of this system?** (stockers, managers, cashiers, associates, or some other role/position) — By knowing this it can help me better scope the user stories.
+### Client Meeting Notes
+Meeting with John Dupper confirmed FreshMart operates 4 stores with separate Excel tracking. Three distinct user roles identified. Product/Inventory/Transaction schema provided in sample files. Key pain points: inaccurate counts, difficulty tracking low stock, no automated expiration handling, inefficient multi-store management.
 
 ---
 
@@ -28,10 +36,11 @@ This document is a checkpoint for alignment, not a final deliverable. Feedback i
 | Epic ID | Name | Description | Business Value |
 |---------|------|-------------|----------------|
 | EPIC-01 | Inventory Management | Add/remove and mark product as discounted | Allows accurate inventory tracking so the business always knows current stock levels and can make informed purchasing decisions |
-| EPIC-02 | Inventory Monitoring and Alerting | Will alert the user based on the current stock of the product being low | This can allow the buisness to know when products are restock, meaning higher conversion of customers. |
+| EPIC-02 | Inventory Monitoring and Alerting | Will alert the user based on the current stock of the product being low | This can allow the **business** to know when products are restock, meaning higher conversion of customers. |
 | EPIC-03 | Analytics | Track the velocity of sale | Allows the business to know how to handle and order future stock based on current trends, better serving customer needs |
 | EPIC-04 | Liquidation/Expiration Handling | Suggest recommendations to put items on sale based on proximity to their expiration date | Prevents the grocer from selling items that have gone bad and other similar disastrous outcomes |
 | EPIC-05 | Reporting | Handling of the reporting infrastructure | Provides extensible foundation for future reporting capabilities |
+| EPIC-06 | Multi-Store Operations | Handle inventory across 4 stores with role-based access control | Enables proper separation of duties between Managers, Associates, and future Corporate staff |
 ---
 
 ## 4. User Stories by Epic
@@ -40,32 +49,43 @@ This document is a checkpoint for alignment, not a final deliverable. Feedback i
 
 | ID | Role | Story | So That | Acceptance Criteria | Priority |
 |----|------|-------|---------|-------------------|----------|
-| EPIC-01-01 | As a user | I want to add new products to the inventory | So that we can keep track of store inventory | - Can add food items with name, category, quantity, price, and expiration date<br>- Can add non-food items with name, category, quantity, and price (no expiration date required)<br>- System distinguishes between food and non-food product types | Must Have |
-| EPIC-01-02 | As a user | I want to remove products from the inventory | So that discontinued or depleted items aren't in active inventory| - Product is archived rather than permanently deleted<br>-Removing a product with quantity > 0 triggers a confirmation prompt | Must Have |
-| EPIC-01-03 | As a user | I want to update the quantity of an existing product | So that inventory counts stay accurate as stock is received or sold | - Quantity can be increased (stocked) or decreased (sold, damage, etc.)<br>- Quantity cannot go below zero| Must Have |
-| EPIC-01-04 | As a user | I want to mark a product as on sale with a discount amount | So that reductions in price are applied and tracked without losing the original price | - Original price is preserved alongside the sale price<br>- Item can be a percentage or flat amount<br>- Item can be restored to the original price | Must Have |
+| EPIC-01-01 | As a Store Manager | I want to input new products into inventory | So that we can track store inventory | - Input product using Product schema (ProductName, Category, UPC, UnitCost, RetailPrice, IsOnSale, SalePrice, ExpirationDate, ReorderThreshold, ReorderQuantity)<br>- System validates UPC uniqueness<br>- Initial quantity creates Inventory record with StoreID | Must Have |
+| EPIC-01-02 | As a Store Manager | I want to delete products from inventory | So that discontinued or depleted items no longer appear | - Deleting shows confirmation popup<br>- After confirmation, product no longer appears in dashboard<br>- System archives internally without exposing "archive" concept | Must Have |
+| EPIC-01-03 | As a Store Manager or Stock Associate | I want the inventory count to refresh automatically when I view them | So that I always see the most current stock levels | - Count refreshes automatically when new transactions are recorded<br>- QuantityOnHand reflects latest changes immediately<br>- Low stock status recalculates automatically | Must Have |
+| EPIC-01-04 | As a Store Manager | I want to mark products as on sale | So that I can run promotions while preserving original pricing | - Original RetailPrice preserved with SalePrice<br>- Sale applies to assigned store only<br>- [S] badge appears on dashboard<br>- Sale removable to restore original price | Must Have |
 
 ### Epic: EPIC-02 Inventory Monitoring and Alerting
 
 | ID | Role | Story | So That | Acceptance Criteria | Priority |
 |----|------|-------|---------|-------------------|----------|
-| EPIC-02-01 | As a user | I want to set a low-stock threshold when creating an item | So that I can define when I should be alerted before it runs out | - I can set a low-stock threshold during item creation<br>- The threshold must be a valid non-negative number<br>- The threshold is saved with the product | Should Have |
-| EPIC-02-02 | As a user | I want to be alerted when stock falls below the threshold | So that I can restock before running out | - Alert is generated when quantity falls below threshold<br>- Alert includes product name, current quantity, and threshold value<br>- Alerts can be acknowledged once acted on | Must Have |
+| EPIC-02-01 | As a Store Manager | I want to set a low-stock threshold when creating an item | So that I can define when I should be alerted before it runs out | - I can set a low-stock threshold during item creation<br>- The threshold must be a valid non-negative number<br>- The threshold is saved with the product | Should Have |
+| EPIC-02-02 | As a Store Manager or Stock Associate | I want to be alerted when stock falls below the threshold | So that I can restock before running out | - Alert is generated when quantity falls below threshold<br>- Alert includes product name, current quantity, and threshold value<br>- Alerts can be acknowledged once acted on | Must Have |
 
 ### Epic: EPIC-03 Analytics
 
 | ID | Role | Story | So That | Acceptance Criteria | Priority |
 |----|------|-------|---------|-------------------|----------|
-| EPIC-03-01 | As a user | I want to see a product's sales velocity over the last 4 weeks | So that I can tell if it is selling faster or slower than before | - A chart displays weekly sales velocity for the past 4 weeks<br>- Velocity is shown as units sold per week<br>- Trend direction is visually clear (e.g., upward/downward slope) | Must Have |
-| EPIC-03-02 | As a user | I want to see the delta between the most recent week and the previous week | So that I can quickly quantify whether sales are accelerating or declining | - Delta (percentage change) is displayed<br>- Change is visually indicated (up/down) | Should Have |
-| EPIC-03-03 | As a user | I want to adjust the time period used to calculate sales velocity | So that I can analyze longer or shorter trends | - Time period is selectable (7, 30, 90 days)<br>- Chart updates when time period changes | Should Have |
+| EPIC-03-01 | As a Store Manager | I want to see a product's sales velocity over the last 4 weeks | So that I can tell if it is selling faster or slower than before | - A chart displays weekly sales velocity for the past 4 weeks<br>- Velocity is shown as units sold per week<br>- Trend direction is visually clear (e.g., upward/downward slope) | Must Have |
+| EPIC-03-02 | As a Store Manager | I want to see the delta between the most recent week and the previous week | So that I can quickly quantify whether sales are accelerating or declining | - Delta (percentage change) is displayed<br>- Change is visually indicated (up/down) | Should Have |
+| EPIC-03-03 | As a Store Manager | I want to adjust the time period used to calculate sales velocity | So that I can analyze longer or shorter trends | - Time period is selectable (7, 30, 90 days)<br>- Chart updates when time period changes | Should Have |
 
 ### Epic: EPIC-04 Liquidation/Expiration Handling
 
 | ID | Role | Story | So That | Acceptance Criteria | Priority |
 |----|------|-------|---------|-------------------|----------|
-| EPIC-04-01 | As a user | I want the system to handle food products approaching their expiration date | So that I can take action before products expire and become unsellable | - Products are flagged at a configurable number of days before expiration (default: 7 days)<br>- Flagged products appear to the user<br>- Already expired products are distinct from approaching expiration | Must Have |
-| EPIC-04-02 | As a user | I want the system to suggest a discount for products nearing expiration | So that I can reduce waste and increase the chance of selling them before they expire | - Suggested discount is based on remaining shelf life<br>- Products closer to expiration receive a steeper suggested discount<br>- Suggested discount percentage is displayed to the user | Should Have |
+| EPIC-04-01 | As a Store Manager or Stock Associate | I want the system to handle food products approaching their expiration date | So that I can take action before products expire and become unsellable | - Products are flagged at a configurable number of days before expiration (default: 7 days)<br>- Flagged products appear to the user<br>- Already expired products are distinct from approaching expiration | Must Have |
+| EPIC-04-02 | As a Store Manager | I want the system to suggest a discount for products nearing expiration | So that I can reduce waste and increase the chance of selling them before they expire | - Suggested discount is based on remaining shelf life<br>- Products closer to expiration receive a steeper suggested discount<br>- Suggested discount percentage is displayed to the user | Should Have |
+
+### Epic: EPIC-06 Multi-Store Operations
+
+The FreshMart requirements explicitly mention three user types, and the current spreadsheet pain points include difficulty managing inventory across multiple locations. This epic addresses both role-based access and store-specific operations.
+
+| ID | Role | Story | So That | Acceptance Criteria | Priority |
+|----|------|-------|---------|-------------------|----------|
+| EPIC-06-01 | As any user | I want to log in with my assigned role and store | I only access features and data appropriate to my responsibilities | - Login requires username and password<br>- System authenticates and assigns role: Manager, Associate, or Corporate<br>- Role determines which UI elements are visible and which API endpoints are accessible<br>- Store Managers and Associates are assigned to one specific StoreID<br>- Corporate staff can select any store or view aggregate data<br>- Failed login attempts are logged for security auditing | Must Have |
+| EPIC-06-02 | As a Store Manager | I want to view all inventory for my assigned store | I can oversee stock levels and make informed decisions about purchasing and promotions | - Dashboard defaults to showing all products for the manager's assigned StoreID<br>- Can filter by category, alert status (LOW, EXP), and sale status<br>- Cannot see inventory at other stores by default (configurable based on business rules)<br>- Quick-glance indicators show: quantity on hand, sale status, days until expiration, low stock alerts<br>- Clicking a product opens the Product Detail page for that store's inventory | Must Have |
+| EPIC-06-03 | As a Stock Associate | I want to record when I receive a shipment of products | The inventory count reflects new stock immediately and accurately | - Simple interface to select ProductID and enter received quantity<br>- Transaction type is automatically set to RECEIVE<br>- System validates that ProductID exists in the catalog<br>- QuantityOnHand is increased immediately<br>- Associate must provide notes (e.g., "Supplier delivery from Dairy Best")<br>- Timestamp and Associate UserID are captured automatically<br>- Cannot modify prices, sale status, or archive products | Must Have |
+| EPIC-06-04 | As a Stock Associate | I want to record sales and damaged goods | All inventory movements are tracked and attributed to the correct associate | - Can record SALE transactions (decreases QuantityOnHand, customer purchases)<br>- Can record ADJUSTMENT transactions for damaged, expired, or miscounted items<br>- Must enter quantity change and reason/notes for each transaction<br>- All transactions logged with: ProductID, StoreID, TransactionType, QuantityChange, TransactionDate, UserID, Notes<br>- Transaction history is viewable by Store Managers for auditing | Must Have |
 ---
 
 ## 5. Roadmap
@@ -73,28 +93,44 @@ This document is a checkpoint for alignment, not a final deliverable. Feedback i
 ### Increment 1 — Core Inventory Foundation
 
 **What it delivers:**
-A functional inventory management system with the ability to add, remove, and update products. This increment establishes the core data model and basic CRUD operations through a REST API, accessible via a simple HTML/JavaScript frontend. Products can be created as either food items (with expiration dates) or non-food items, and inventory quantities can be tracked and modified.
+A functional inventory management system with multi-store support and role-based access. This increment establishes the core data model matching FreshMart's existing Excel structure, with full CRUD operations through a REST API accessible via a simple HTML/JavaScript frontend. The system supports 4 store locations with distinct user roles (Managers and Associates), tracks inventory per store using the Product/Inventory separation from the client's current spreadsheets, and logs all changes as transactions.
 
 **Stories covered:**
-- EPIC-01-01: Add new products to inventory
-- EPIC-01-02: Remove/archive products from inventory  
-- EPIC-01-03: Update product quantities
+- EPIC-01-01: Input products using Product schema
+- EPIC-01-02: Delete products from inventory (archive internally)
+- EPIC-01-03: Inventory counts refresh automatically
+- EPIC-01-04: Mark products on sale
+- EPIC-06-01: Login with role and store assignment
+- EPIC-06-02: Store Manager views store inventory
+- EPIC-06-03: Stock Associate records RECEIVE transactions
+- EPIC-06-04: Stock Associate records SALE and ADJUSTMENT transactions
 
 **Dependencies:**
-- Java 17+ and Maven/Gradle build system
-- Spring Boot 3.x with Spring Data JPA
-- PostgreSQL database (or H2 for local development)
-- Flyway for database schema versioning and migrations
-- Basic HTML/CSS/JavaScript frontend
+- Java 21+ and Maven/Gradle build system
+- Spring Boot 3.x with Spring Data JPA and Spring Security
+- PostgreSQL database (matching the Excel schema: Stores, Products, Inventory, Transactions, Suppliers)
+- Flyway for database schema versioning
+- BCrypt or similar for password hashing
+- JWT or session-based authentication
+- Basic HTML/CSS/JavaScript frontend with role-aware rendering
 
 **Why it's first:**
-This increment delivers the foundational capabilities that all other features depend on. Without the ability to create and manage products, we cannot track inventory levels, monitor stock, analyze sales velocity, or handle expiration dates. It provides immediate value by replacing any manual inventory tracking with a digital system and establishes the core data structures needed for subsequent increments.
+This increment replaces FreshMart's Excel-based process with a digital system that maintains their existing workflow while adding structure. Multi-store support and role-based access are foundational—without authentication and store scoping, we cannot properly separate duties between Managers and Associates. The transaction logging ensures auditability that Excel lacks. By matching the client's existing Excel structure (Products as master catalog, Inventory per-store, Transactions for history), we minimize migration friction while establishing a proper relational database foundation.
 
 **Technical Notes:**
-- Database schema managed via Flyway migrations (V1, V2, etc.)
-- REST API endpoints for full CRUD operations
-- Simple table-based UI with vanilla JavaScript calling the API
-- Product model supports both food and non-food types via inheritance/polymorphism
+- Database schema is based on the client's existing Excel structure with additions for authentication and audit tracking:
+  - `stores` table: StoreID, StoreName, Street, City, State, ZipCode, Phone, Active
+  - `products` table: ProductID, ProductName, Category, UPC, SupplierID, UnitCost, RetailPrice, IsOnSale, SalePrice, ExpirationDate, ReorderThreshold, ReorderQuantity, IsFood, Active
+  - `inventory` table: InventoryID, ProductID, StoreID, QuantityOnHand, LastUpdated, Active
+  - `transactions` table: TransactionID, ProductID, StoreID, TransactionType (SALE/RECEIVE/ADJUSTMENT), QuantityChange, TransactionDate, UserID, Notes
+  - `suppliers` table: SupplierID, SupplierName, ContactName, Phone, Email
+  - `users` table: UserID, Username, PasswordHash, Role (MANAGER/ASSOCIATE/CORPORATE), AssignedStoreID (nullable for Corporate), Active
+- REST API uses JWT tokens with role claims
+- Frontend conditionally renders UI elements based on role from JWT
+- Flyway migrations V1-V6 establish schema matching Excel structure
+- Per-store inventory queries use StoreID filter in all API endpoints
+- "Delete" operation sets Active=0 on Inventory record (archived) but presents as "removed" to user
+- Active inventory counts use `WHERE Active=1` filter in all queries
 
 ---
 
@@ -104,7 +140,6 @@ This increment delivers the foundational capabilities that all other features de
 Enhanced inventory operations including discount management, low stock alerting, and expiration date tracking. Users can mark products on sale with configurable discounts, receive alerts when stock falls below defined thresholds, and view warnings for products approaching expiration.
 
 **Stories covered:**
-- EPIC-01-04: Mark products as on sale with discount amount
 - EPIC-02-01: Set low-stock thresholds during item creation
 - EPIC-02-02: Alert when stock falls below threshold
 - EPIC-04-01: Handle products approaching expiration date
@@ -138,8 +173,7 @@ Sales velocity tracking and analytics capabilities that show how fast products a
 - EPIC-04-02: Suggest discounts for products nearing expiration
 
 **Dependencies:**
-- Increment 2 completed and deployed
-- Historical sales data accumulated from quantity decrements
+- Increment 1 deployed and operational long enough to accumulate meaningful SALE transaction history
 - Flyway migration for sales velocity tracking schema
 - Charting library for frontend (Chart.js or vanilla canvas)
 
@@ -155,19 +189,7 @@ Analytics requires historical sales data that only becomes meaningful after Incr
 
 ---
 
-## 6. Future Considerations
-
-### Reporting Infrastructure
-
-**Status:** Out of Scope for Current Roadmap
-
-**Rationale:** While the system architecture will support future reporting enhancements (as noted in requirements), full reporting capabilities are not included in the initial deliverables. The current epics focus on operational inventory management. However, the database schema and API design should accommodate future reporting features without requiring significant refactoring.
-
-**Future Value:** Once basic inventory operations are stable, reporting will enable the business to analyze long-term trends, identify seasonal patterns, and optimize overall store performance.
-
----
-
-## 7. Wireframes
+## 6. Wireframes
 
 ### Wireframe: Inventory Dashboard (Main List View)
 
@@ -230,7 +252,7 @@ Modal or dedicated page for creating new products or editing existing ones. Clea
 |                                                  |
 |  Category:     [Dairy ▼______________________]   |
 |                                                  |
-|  SKU/Barcode:  [____________________________]    |
+|  UPC:          [____________________________]    |
 |                                                  |
 |  Initial Qty:  [____________]  Unit: [each ▼]   |
 |                                                  |
@@ -258,9 +280,9 @@ Modal or dedicated page for creating new products or editing existing ones. Clea
 - EPIC-04-01: Enter expiration dates for food items
 
 **Key Elements:**
-- **Product type toggle**: Radio buttons for Food/Non-Food selection
+- **Product type toggle**: Radio buttons for Food/Non-Food selection (sets IsFood field)
 - **Conditional fields**: Expiration date only shows for Food type
-- **SKU/Barcode field**: Optional unique identifier
+- **UPC field**: Universal Product Code for barcode scanning
 - **Low stock threshold**: Number input with helpful text
 - **Sale configuration**: Toggle to enable sale, with price or percentage options
 - **Form validation**: Inline validation for required fields
@@ -279,7 +301,7 @@ Detailed view of a single product showing all information, current stock status,
 |  < Back to Inventory                             |
 +--------------------------------------------------+
 |  Milk 2% - 1 Gallon                              |
-|  SKU: DAIRY-001    Category: Dairy    Type: Food |
+|  UPC:          DAIRY-001    Category: Dairy    Type: Food |
 +--------------------------------------------------+
 |                                                  |
 |  CURRENT STOCK                                   |
@@ -402,7 +424,7 @@ Centralized view of all system alerts requiring user attention. Organized by sev
 
 ---
 
-## Appendix
+## 7. Appendix
 
 ### MoSCoW Priority Definitions
 
@@ -423,6 +445,72 @@ Centralized view of all system alerts requiring user attention. Organized by sev
 | **Velocity** | The rate at which a product sells over a specific time period |
 | **Expiration Date** | The date by which a food product should be sold or removed from shelves |
 | **Restock** | The process of adding inventory to an existing product's quantity |
-| **SKU** | Stock Keeping Unit - a unique identifier for each product type |
+| **UPC** | Universal Product Code - a barcode identifier for products (replaces SKU in this system) |
+| **StoreID** | Unique identifier for each FreshMart location: 101 (Downtown), 102 (Northside), 103 (Westside), 104 (Riverside) |
+| **Transaction Type** | Classification of inventory change: SALE (customer purchase), RECEIVE (supplier shipment), ADJUSTMENT (damage, expiry, recount) |
+| **Reorder Threshold** | Minimum QuantityOnHand before system suggests reordering (from ReorderThreshold field) |
+| **Reorder Quantity** | Suggested amount to order when stock falls below threshold (from ReorderQuantity field) |
+| **Multi-Store** | Architecture supporting 4 independent store locations with shared product catalog |
+| **User Role** | Permission level: Store Manager (full store access), Stock Associate (inventory updates only), Corporate Staff (cross-store reporting) |
+| **IsFood** | Boolean field indicating if product requires expiration date tracking (true for food items, false for non-food) |
+
+---
+
+## 8. Future Considerations & Suggestions
+
+### Proactive Features Beyond Client Requirements
+
+The exercise prompt asked: *"What are other features that this application can support that the grocery store hasn't thought of yet?"*
+
+The following features were proactively proposed beyond the client's stated requirements:
+
+**1. Full Transaction Audit Trail with UserID Attribution**
+- *Why proposed:* The Excel pain points mention difficulty tracking inventory changes over time
+- *Implementation:* All RECEIVE, SALE, and ADJUSTMENT transactions capture UserID, timestamp, and notes
+- *Value:* Complete accountability—know WHO made every inventory change, not just WHAT changed
+
+**2. Algorithmic Discount Percentage Suggestions (EPIC-04-02)**
+- *Why proposed:* Client asked to "suggest recommendations for when to put items on sale"
+- *Implementation:* Dynamic discount percentages based on days until expiration (40% at 3 days, 25% at 5 days, etc.)
+- *Value:* Goes beyond simple "flag for sale" to specific actionable percentages that maximize waste reduction
+
+**3. Role-Based Access Control Across Stores (EPIC-06)**
+- *Why proposed:* While the exercise prompt mentions "store managers" and "associates," it doesn't explicitly ask for authentication
+- *Implementation:* Login system with Spring Security, JWT tokens, role-based UI rendering
+- *Value:* Separation of duties prevents unauthorized pricing changes by Associates and ensures data integrity
+
+**4. Multi-Store Architecture from Day One**
+- *Why proposed:* The exercise prompt implies one store but client files show 4 locations
+- *Implementation:* StoreID scoping on all inventory queries, per-store transaction logging
+- *Value:* Solves the actual pain point (multi-location inefficiency) rather than building single-store MVP that misses the mark
+
+These features transform a basic inventory tracker into an operational intelligence system that addresses FreshMart's real workflow challenges.
+
+These items were considered but deferred for future phases based on client meeting feedback:
+
+### Cross-Store Visibility
+**Question:** Should Store Managers be able to view inventory at other FreshMart locations?
+**Suggestion:** Start with store-only visibility for security. Consider read-only cross-store view for Store Managers in Phase 2 if needed for coordination.
+
+### Store-Specific Pricing
+**Question:** Are there pricing differences between locations?
+**Suggestion:** Current schema uses single RetailPrice per ProductID. If store-specific pricing becomes requirement, migrate to store_pricing table.
+
+### Corporate Staff Access
+**Question:** Should Corporate Staff be able to modify inventory at specific stores?
+**Suggestion:** Keep Corporate Staff read-only in initial release. Add modification capabilities later if business requires central control.
+
+### Excel Data Migration
+**Suggestion:** Provide import tool in Increment 1 to migrate existing Excel data. Map Excel sheets directly to database tables (Stores, Products, Inventory, Transactions, Suppliers).
+
+### Supplier Management
+**Status:** Deferred to future phase
+**Rationale:** While the system tracks supplier information (SupplierID, contact details) in the database schema per the Excel files, full supplier management UI (add/edit suppliers, view supplier catalogs) is not included in initial deliverables.
+**Future Value:** Once basic inventory operations are stable, full supplier management will enable better vendor relationship tracking and automated reordering workflows.
+
+### Reporting Infrastructure
+**Status:** Deferred to future phase
+**Rationale:** While the system architecture will support future reporting enhancements (as noted in requirements), full reporting capabilities for Corporate Staff are not included in the initial deliverables. The current epics focus on operational inventory management. However, the database schema and API design accommodate future reporting features without requiring significant refactoring.
+**Future Value:** Once basic inventory operations are stable, reporting will enable the business to analyze long-term trends, identify seasonal patterns, and optimize overall store performance.
 
 ---
