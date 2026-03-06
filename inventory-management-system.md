@@ -119,13 +119,11 @@ A functional inventory management system with multi-store support and role-based
 - EPIC-06-04: Stock Associate records SALE and ADJUSTMENT transactions
 
 **Dependencies:**
-- Java 21+ and Maven/Gradle build system
-- Spring Boot 3.x with Spring Data JPA and Spring Security
-- PostgreSQL database (matching the Excel schema: Stores, Products, Inventory, Transactions, Suppliers)
+- Relational database matching the Excel schema (Stores, Products, Inventory, Transactions, Suppliers)
 - Database schema versioning and migrations
-- BCrypt or similar for password hashing
-- JWT or session-based authentication
-- Basic HTML/CSS/JavaScript frontend with role-aware rendering
+- Authentication system with role-based access control
+- REST API for data operations
+- Web-based frontend with role-aware rendering
 
 **Why it's first:**
 This increment replaces FreshMart's Excel-based process with a digital system that maintains their existing workflow while adding structure. Multi-store support and role-based access are foundational—without authentication and store scoping, we cannot properly separate duties between Managers and Associates. The transaction logging ensures auditability that Excel lacks. By matching the client's existing Excel structure (Products as master catalog, Inventory per-store, Transactions for history), we minimize migration friction while establishing a proper relational database foundation.
@@ -138,8 +136,8 @@ This increment replaces FreshMart's Excel-based process with a digital system th
   - `transactions` table: TransactionID, ProductID, StoreID, TransactionType (SALE/RECEIVE/ADJUSTMENT), QuantityChange, TransactionDate, UserID, Notes
   - `suppliers` table: SupplierID, SupplierName, ContactName, Phone, Email
   - `users` table: UserID, Username, PasswordHash, Role (MANAGER/ASSOCIATE/CORPORATE), AssignedStoreID (nullable for Corporate), Active
-- REST API uses JWT tokens with role claims
-- Frontend conditionally renders UI elements based on role from JWT
+- REST API with authentication and role-based access
+- Frontend conditionally renders UI elements based on user role
 - Database migrations establish schema matching Excel structure
 - Per-store inventory queries use StoreID filter in all API endpoints
 - "Delete" operation sets Active=0 on Inventory record (archived) but presents as "removed" to user
@@ -187,8 +185,7 @@ Sales velocity tracking and analytics capabilities that show how fast products a
 
 **Dependencies:**
 - Increment 1 deployed and operational long enough to accumulate meaningful SALE transaction history
-- Database schema additions for sales velocity tracking
-- Charting library for frontend (Chart.js or vanilla canvas)
+- Database schema additions for sales velocity tracking 
 
 **Why it's third:**
 Analytics requires historical sales data that only becomes meaningful after Increment 2 is operational for some time. This increment transforms raw inventory data into actionable business intelligence—showing which products are trending up or down, enabling data-driven purchasing decisions, and providing automated discount suggestions to minimize waste. It completes the client's requirements for understanding sales velocity and making smart liquidation decisions.
@@ -196,7 +193,7 @@ Analytics requires historical sales data that only becomes meaningful after Incr
 **Technical Notes:**
 - Database schema adds sales_transaction_history table
 - REST endpoints for velocity calculations and chart data
-- Frontend charts rendered with Chart.js or custom canvas implementation
+- Frontend charts rendered implementation to be determined
 - Discount suggestion algorithm based on days until expiration
 - Time period selector (7, 30, 90 days) for trend analysis
 
@@ -204,37 +201,27 @@ Analytics requires historical sales data that only becomes meaningful after Incr
 
 ## 6. Wireframes
 
-### Wireframe: Inventory Dashboard (Main List View)
+**Design Philosophy:** All interfaces follow **functional minimalism** inspired by industrial supply catalogs (McMaster-Carr style) thinking of landing somewhere between the former and bootstrap's aesthetic. Dense information display with minimal decorative elements. Data organized in strict grids and tables with clear hierarchy. Every element serves a purpose—no unnecessary chrome, shadows, or gradients.
 
-**Description:**
-Wireframe (conceptual design, not final implementation) for the primary entry point of the inventory system. Displays a searchable, filterable table of all products with quick-glance information including current stock, sale status, and expiration warnings. McMaster-Carr inspired: dense data table with minimal chrome, clear headers, functional search/filter bar at top.
+## 6. Wireframes
 
-**Note:** These ASCII wireframes represent the UI concept and layout structure for client review. The actual implementation will be a functional HTML/CSS/JavaScript interface.
+**Design Philosophy:** All interfaces follow **functional minimalism** inspired by industrial supply catalogs (McMaster-Carr style) landing somewhere between the former and Bootstrap's aesthetic. Dense information display with minimal decorative elements. Data organized in strict grids and tables with clear hierarchy. Every element serves a purpose—no unnecessary chrome, shadows, or gradients.
 
-**Layout Structure:**
-```
-+--------------------------------------------------+
-|  INVENTORY MANAGEMENT                    [+ Add] |
-+--------------------------------------------------+
-|  Search: [________________]  Filter: [All ▼]     |
-+--------------------------------------------------+
-|  Name          | Category | Qty | Price | Alert |
-|----------------|----------|-----|-------|-------|
-|  Milk 2%       | Dairy    |  45 | $3.99 |       |
-|  Milk 2% [S]   | Dairy    |  12 | $2.99 |  LOW  |
-|  Bread White   | Bakery   |   3 | $2.49 |  LOW  |
-|  Eggs Dozen    | Dairy    |  28 | $4.99 |  EXP  |
-|  Paper Towels  | Household| 67 | $5.99 |       |
-|  ...           | ...      | ... | ...   | ...   |
-+--------------------------------------------------+
-|  Showing 5 of 47 products    [< Prev] [Next >] |
-+--------------------------------------------------+
-```
+**Wireframe Assets:** Detailed wireframes are provided in the accompanying file `takehome-wireframe.drawio`. This file contains visual diagrams for all primary interfaces including:
+
+1. **Inventory Dashboard (Main List View)** — Searchable, filterable product table with quick-glance stock, sale, and expiration status
+2. **Add/Edit Product Form** — Modal/dedicated page for creating and editing products with conditional fields based on product type
+3. **Product Detail Page** — Comprehensive product view with stock controls, pricing, shelf life, alerts, sales velocity chart, and activity history
+4. **Alerts Panel** — Centralized view of all system alerts organized by priority with recommended actions
+
+**Note:** These wireframes communicate design intent for client review. The actual implementation will be a functional HTML/CSS/JavaScript interface following this philosophy.
+
+### Wireframe Summary: Inventory Dashboard
 
 **Supports Stories:**
 - EPIC-01-01: View all products in inventory
 - EPIC-01-03: Quick access to update quantities
-- EPIC-01-04: Visual indicator of sale items [S] badge
+- EPIC-01-04: Visual indicator of sale items
 - EPIC-02-02: Alert column shows LOW/EXP warnings
 - EPIC-04-01: Expiration warnings in Alert column
 
@@ -243,51 +230,12 @@ Wireframe (conceptual design, not final implementation) for the primary entry po
 - **Category filter**: Dropdown to filter by product category
 - **Data table**: Columns for Name, Category, Quantity, Price, Alert status
 - **Alert indicators**: Visual badges (LOW, EXP) for items needing attention
-- **Sale badge**: [S] indicator next to product name when on sale
+- **Sale badge**: Indicator next to product name when on sale
 - **Pagination**: Navigate through large product lists
 - **Add button**: Primary action to create new product
 - **Row click**: Opens Product Detail page
 
----
-
-### Wireframe: Add/Edit Product Form
-
-**Description:**
-Wireframe (conceptual design, not final implementation) for a modal or dedicated page for creating new products or editing existing ones. Clean form layout with conditional fields based on product type (food vs non-food). McMaster-Carr style: form fields aligned in a grid, clear labels, functional layout without decorative elements.
-
-**Note:** These ASCII wireframes represent the UI concept and layout structure. The actual implementation will be a functional HTML/CSS/JavaScript interface, but these diagrams serve to communicate the design intent before development begins.
-
-**Layout Structure:**
-```
-+--------------------------------------------------+
-|  ADD NEW PRODUCT                         [X Close]|
-+--------------------------------------------------+
-|                                                  |
-|  Product Type:  ( ) Food    ( ) Non-Food        |
-|                                                  |
-|  Product Name: [____________________________]   |
-|                                                  |
-|  Category:     [Dairy ▼______________________]   |
-|                                                  |
-|  UPC:          [____________________________]    |
-|                                                  |
-|  Initial Qty:  [____________]  Unit: [each ▼]   |
-|                                                  |
-|  Regular Price: $[__________]                    |
-|                                                  |
-|  [Food items only]:                             |
-|  Expiration Date: [____/____/________]         |
-|                                                  |
-|  Low Stock Threshold: [________]                 |
-|  (Alert when quantity falls below this number)  |
-|                                                  |
-|  [ ] Mark as on sale now                        |
-|  Sale Price: $[__________]   or  Discount: [__]%|
-|                                                  |
-|          [Cancel]           [Save Product]      |
-|                                                  |
-+--------------------------------------------------+
-```
+### Wireframe Summary: Add/Edit Product Form
 
 **Supports Stories:**
 - EPIC-01-01: Add new products with type distinction
@@ -297,7 +245,7 @@ Wireframe (conceptual design, not final implementation) for a modal or dedicated
 - EPIC-04-01: Enter expiration dates for food items
 
 **Key Elements:**
-- **Product type toggle**: Radio buttons for Food/Non-Food selection (sets IsFood field)
+- **Product type toggle**: Selection for Food/Non-Food (sets IsFood field)
 - **Conditional fields**: Expiration date only shows for Food type
 - **UPC field**: Universal Product Code for barcode scanning
 - **Low stock threshold**: Number input with helpful text
@@ -305,65 +253,7 @@ Wireframe (conceptual design, not final implementation) for a modal or dedicated
 - **Form validation**: Inline validation for required fields
 - **Cancel/Save buttons**: Standard form actions
 
----
-
-### Wireframe: Product Detail Page
-
-**Description:**
-Wireframe (conceptual design, not final implementation) for a detailed view of a single product showing all information, current stock status, sales history graph, and active alerts. McMaster-Carr inspired: information-dense layout with data organized in clear sections, functional graphs without decorative elements.
-
-**Note:** These ASCII wireframes represent the UI concept and layout structure for client review. The actual implementation will be a functional HTML/CSS/JavaScript interface.
-
-**Layout Structure:**
-```
-+--------------------------------------------------+
-|  < Back to Inventory                             |
-+--------------------------------------------------+
-|  Milk 2% - 1 Gallon                              |
-|  UPC:          DAIRY-001    Category: Dairy    Type: Food |
-+--------------------------------------------------+
-|                                                  |
-|  CURRENT STOCK                                   |
-|  +------------------------------------------+   |
-|  |  In Stock: 45 units    Status: OK        |   |
-|  |                                          |   |
-|  |  [+ Stock In]  [- Stock Out]  [Update ▼] |   |
-|  +------------------------------------------+   |
-|                                                  |
-|  PRICING                                         |
-|  Regular: $3.99    Sale: $2.99 (25% off)       |
-|  [Remove Sale]                                   |
-|                                                  |
-|  SHELF LIFE                                      |
-|  Expires: 2026-03-15 (18 days remaining)         |
-|  Status: OK                                      |
-|                                                  |
-|  ALERTS                                          |
-|  [!] Stock is below threshold (45 < 50)          |
-|  [Dismiss] [Update Threshold]                    |
-|                                                  |
-|  SALES VELOCITY (Last 4 Weeks)                  |
-|  +------------------------------------------+   |
-|  |         /\                               |   |
-|  |        /  \      /\                     |   |
-|  |       /    \    /  \   /\               |   |
-|  |  ____/      \__/    \_/  \____          |   |
-|  |  W1    W2    W3    W4                      |   |
-|  |  12    18    15    22  units/week        |   |
-|  |                                          |   |
-|  |  Trend: +37%  [↑] vs previous week       |   |
-|  +------------------------------------------+   |
-|                                                  |
-|  HISTORY                                         |
-|  2026-02-20  Restocked +50 units                 |
-|  2026-02-18  Price updated $3.49 → $3.99       |
-|  2026-02-15  Sale activated (25% off)            |
-|  ...                                             |
-|                                                  |
-+--------------------------------------------------+
-|  [Archive Product]                    [Edit]    |
-+--------------------------------------------------+
-```
+### Wireframe Summary: Product Detail Page
 
 **Supports Stories:**
 - EPIC-01-02: Archive product option
@@ -379,54 +269,12 @@ Wireframe (conceptual design, not final implementation) for a detailed view of a
 - **Pricing section**: Shows current sale status with remove option
 - **Shelf life indicator**: Days until expiration with visual status
 - **Alert panel**: Active alerts with dismiss actions
-- **Sales velocity chart**: Simple line/bar chart (vanilla JS or Chart.js)
+- **Sales velocity chart**: Simple line/bar chart displaying velocity trends
 - **Trend indicator**: Percentage change with up/down arrow
 - **Activity history**: Chronological log of changes
 - **Archive button**: Soft-delete functionality
 
----
-
-### Wireframe: Alerts Panel
-
-**Description:**
-Wireframe (conceptual design, not final implementation) for a centralized view of all system alerts requiring user attention. Organized by severity/urgency with clear action items. McMaster-Carr style: tabular data presentation with action buttons, minimal visual noise.
-
-**Note:** These ASCII wireframes represent the UI concept and layout structure for client review. The actual implementation will be a functional HTML/CSS/JavaScript interface.
-
-**Layout Structure:**
-```
-+--------------------------------------------------+
-|  ALERTS & NOTIFICATIONS              [Dashboard] |
-+--------------------------------------------------+
-|                                                  |
-|  ACTIVE ALERTS (4)                               |
-|  [All] [Low Stock] [Expiring] [Dismissed]       |
-|                                                  |
-|  Priority | Product       | Type    | Action    |
-|  ---------|---------------|---------|-----------|
-|  HIGH     | Bread White   | LOW     | [Restock] |
-|  HIGH     | Milk 2%       | LOW     | [Restock] |
-|  MEDIUM   | Eggs Dozen    | EXP 3d  | [Discount]|
-|  MEDIUM   | Yogurt Plain  | EXP 5d  | [Discount]|
-|  ...      | ...           | ...     | ...       |
-|                                                  |
-+--------------------------------------------------+
-|                                                  |
-|  RECOMMENDED ACTIONS                             |
-|  +------------------------------------------+   |
-|  |  Eggs Dozen - Expires in 3 days           |   |
-|  |  Suggested: 40% discount ($4.99 → $2.99)   |   |
-|  |  [Apply Discount] [Dismiss] [View Product] |   |
-|  +------------------------------------------+   |
-|                                                  |
-|  +------------------------------------------+   |
-|  |  Yogurt Plain - Expires in 5 days         |   |
-|  |  Suggested: 25% discount ($3.49 → $2.62) |   |
-|  |  [Apply Discount] [Dismiss] [View Product] |   |
-|  +------------------------------------------+   |
-|                                                  |
-+--------------------------------------------------+
-```
+### Wireframe Summary: Alerts Panel
 
 **Supports Stories:**
 - EPIC-02-02: View and acknowledge low stock alerts
@@ -434,9 +282,9 @@ Wireframe (conceptual design, not final implementation) for a centralized view o
 - EPIC-04-02: Smart discount recommendations
 
 **Key Elements:**
-- **Tab filters**: Filter alerts by type (All/Low Stock/Expiring/Dismissed)
+- **Tab filters**: Filter alerts by issue type (All/Low Stock/Expiring/Dismissed)
 - **Priority column**: Visual indication of urgency (HIGH/MEDIUM/LOW)
-- **Quick actions**: Context-aware buttons per alert type
+- **Quick actions**: Context-aware buttons per issue type
   - Low Stock: [Restock] opens product edit with focus on quantity
   - Expiring: [Discount] suggests and applies recommended discount
 - **Recommended actions section**: Expanded view of expiring items with suggested discount percentages
@@ -485,53 +333,28 @@ The exercise prompt asked: *"What are other features that this application can s
 
 The following features were proactively proposed beyond the client's stated requirements:
 
-**1. Full Transaction Audit Trail with UserID Attribution**
-- *Why proposed:* The Excel pain points mention difficulty tracking inventory changes over time
-- *Implementation:* All RECEIVE, SALE, and ADJUSTMENT transactions capture UserID, timestamp, and notes
-- *Value:* Complete accountability—know WHO made every inventory change, not just WHAT changed
-
-**2. Algorithmic Discount Percentage Suggestions (EPIC-04-02)**
-- *Why proposed:* Client asked to "suggest recommendations for when to put items on sale"
-- *Implementation:* Dynamic discount percentages based on days until expiration (40% at 3 days, 25% at 5 days, etc.)
-- *Value:* Goes beyond simple "flag for sale" to specific actionable percentages that maximize waste reduction
-
-**3. Role-Based Access Control Across Stores (EPIC-06)**
-- *Why proposed:* While the exercise prompt mentions "store managers" and "associates," it doesn't explicitly ask for authentication
-- *Implementation:* Login system with Spring Security, JWT tokens, role-based UI rendering
-- *Value:* Separation of duties prevents unauthorized pricing changes by Associates and ensures data integrity
-
-**4. Multi-Store Architecture from Day One**
-- *Why proposed:* The exercise prompt implies one store but client files show 4 locations
-- *Implementation:* StoreID scoping on all inventory queries, per-store transaction logging
-- *Value:* Solves the actual pain point (multi-location inefficiency) rather than building single-store MVP that misses the mark
+| # | Feature | Why Proposed | Implementation | Value |
+|---|---------|--------------|----------------|-------|
+| 1 | **Full Transaction Audit Trail with UserID Attribution** | The Excel pain points mention difficulty tracking inventory changes over time | All RECEIVE, SALE, and ADJUSTMENT transactions capture UserID, timestamp, and notes | This creates complete accountability so you know who made every inventory change, not just what changed |
+| 2 | **Algorithmic Discount Suggestions** (EPIC-04-02) | Client asked to "suggest recommendations for when to put items on sale" | Dynamic discount percentages based on days until expiration (40% at 3 days, 25% at 5 days, etc.) | Goes beyond simple "flag for sale" to specific actionable percentages that maximize waste reduction |
+| 3 | **Role-Based Access Control** (EPIC-06) | Exercise prompt mentions "store managers" and "associates" but doesn't explicitly ask for authentication | Login system with role-based authentication and authorization | Separation of duties prevents unauthorized pricing changes by Associates and ensures data integrity |
+| 4 | **Multi-Store Architecture from Day One** | Exercise prompt implies one store but client files show 4 locations | StoreID scoping on all inventory queries, per-store transaction logging | Solves the actual pain point (multi-location inefficiency) rather than building single-store MVP that misses the mark |
 
 These features transform a basic inventory tracker into an operational intelligence system that addresses FreshMart's real workflow challenges.
 
-These items were considered but deferred for future phases based on client meeting feedback:
+---
 
-### Cross-Store Visibility
-**Question:** Should Store Managers be able to view inventory at other FreshMart locations?
-**Suggestion:** Start with store-only visibility for security. Consider read-only cross-store view for Store Managers in Phase 2 if needed for coordination.
+### Deferred for Future Phases
 
-### Store-Specific Pricing
-**Question:** Are there pricing differences between locations?
-**Suggestion:** Current schema uses single RetailPrice per ProductID. If store-specific pricing becomes requirement, migrate to store_pricing table.
+The following items were considered but deferred based on client meeting feedback:
 
-### Corporate Staff Access
-**Question:** Should Corporate Staff be able to modify inventory at specific stores?
-**Suggestion:** Keep Corporate Staff read-only in initial release. Add modification capabilities later if business requires central control.
-
-### Excel Data Migration
-**Suggestion:** Provide import tool in Increment 1 to migrate existing Excel data. Map Excel sheets directly to database tables (Stores, Products, Inventory, Transactions, Suppliers).
-
-### Supplier Management
-**Status:** Deferred to future phase
-**Rationale:** While the system tracks supplier information (SupplierID, contact details) in the database schema per the Excel files, full supplier management UI (add/edit suppliers, view supplier catalogs) is not included in initial deliverables.
-**Future Value:** Once basic inventory operations are stable, full supplier management will enable better vendor relationship tracking and automated reordering workflows.
-
-### Reporting Infrastructure
-**Status:** Deferred to future phase
-**Rationale:** While the system architecture will support future reporting enhancements (as noted in requirements), full reporting capabilities for Corporate Staff are not included in the initial deliverables. The current epics focus on operational inventory management. However, the database schema and API design accommodate future reporting features without requiring significant refactoring.
-**Future Value:** Once basic inventory operations are stable, reporting will enable the business to analyze long-term trends, identify seasonal patterns, and optimize overall store performance.
+| Feature | Rationale | Future Consideration |
+|---------|-----------|---------------------|
+| **Cross-Store Visibility** | Start with store-only visibility for security | Consider read-only cross-store view for Store Managers in Phase 2 if needed for coordination |
+| **Store-Specific Pricing** | Current schema uses single RetailPrice per ProductID | If store-specific pricing becomes requirement, migrate to store_pricing table |
+| **Corporate Staff Modification Rights** | Keep Corporate Staff read-only in initial release | Add modification capabilities later if business requires central control |
+| **Excel Data Migration Tool** | Not critical for initial launch | Provide import tool in Increment 1 to migrate existing Excel data; map sheets directly to database tables |
+| **Supplier Management UI** | System tracks supplier info in schema per Excel files, but full UI is not critical initially | Once basic inventory operations are stable, enable vendor relationship tracking and automated reordering |
+| **Corporate Reporting Infrastructure** | Current epics focus on operational inventory management; schema supports future enhancements | Once operations are stable, enable long-term trend analysis, seasonal pattern identification, and performance optimization |
 
 ---
