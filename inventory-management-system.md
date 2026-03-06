@@ -126,7 +126,7 @@ A functional inventory management system with multi-store support and role-based
 - Web-based frontend with role-aware rendering
 
 **Why it's first:**
-This increment gets FreshMart out of Excel and into a system that tracks inventory more reliably across all 4 stores (starting with one). It covers the core day-to-day work first: managing products, inventory, and making sure Managers and Associate have adequate date.
+This increment gets FreshMart out of Excel and into a system that tracks inventory more reliably starting with one, which can be repeated across all 4 stores. It covers the core day-to-day work first: managing products, inventory, and making sure Managers and Associate have adequate date.
 
 **Technical Notes:**
 - Database schema is based on the client's existing Excel structure with additions for authentication and audit tracking:
@@ -161,7 +161,7 @@ Additional inventory operations including discount management, low stock alertin
 - Frontend alert display components
 
 **Why it's second:**
-With the core inventory work in place, this increment adds the alerting and expiration handling. Helping the store catch low stock, manage items nearing expiration, and apply discounts as needed.
+With the core inventory work in place, this increment adds the alerting and expiration handling. Helping the store track low stock, manage items nearing expiration, and apply discounts as needed.
 
 **Technical Notes:**
 - Database schema adds low_stock_threshold column
@@ -175,7 +175,7 @@ With the core inventory work in place, this increment adds the alerting and expi
 ### Increment 3 — Analytics
 
 **What it delivers:**
-Sales velocity tracking and analytics capabilities that show how fast products are selling compared to previous periods. Includes visual charts displaying weekly sales velocity over time, changes week to week calculations, and configurable time period analysis. Smart discount recommendations are provided for products nearing expiration based on remaining shelf life.
+Sales velocity tracking and analytics capabilities that show how fast products are selling compared to previous periods. Includes visual charts displaying weekly sales velocity over time, changes week to week, and configurable time period analysis. Smart discount recommendations are provided for products nearing expiration based on remaining shelf life.
 
 **Stories covered:**
 - EPIC-03-01: Display product sales velocity over last 4 weeks
@@ -295,8 +295,8 @@ This increment comes after enough sales history exists to make the analytics use
 
 | # | Feature | Why Proposed | Implementation | Value |
 |---|---------|--------------|----------------|-------|
-| 1 | **Full Transaction Audit Trail with UserID Attribution** | The Excel pain points mention difficulty tracking inventory changes over time | All RECEIVE, SALE, and ADJUSTMENT transactions capture UserID, timestamp, and notes | This creates complete accountability so the who and when is documented for every inventory change|
-| 2 | **Role-Based Access Control** (EPIC-06) | Exercise prompt mentions "store managers" and "associates" but doesn't explicitly ask for authentication | Login system with role-based authentication and authorization | Separation of duties prevents unauthorized pricing changes by Associates and ensures data integrity |
+| 1 | **Full Transaction Audit Trail** | The Excel pain points mention difficulty tracking inventory changes over time | All RECEIVE, SALE, and ADJUSTMENT transactions capture UserID, timestamp, and notes | This creates complete accountability so the who and when is documented for every inventory change|
+| 2 | **Role-Based Access Control** (EPIC-06) | Exercise prompt mentions "store managers" and "associates" but doesn't explicitly ask for authentication | Login system with role based authentication and authorization | Separation of duties prevents unauthorized pricing changes by Associates|
 | 3 | **Multi-Store Architecture ** | | StoreID scoping on all inventory queries, per-store transaction logging | Solves the actual pain point (inefficiency) first rather than building single-store MVP that misses the mark |
 ---
 
