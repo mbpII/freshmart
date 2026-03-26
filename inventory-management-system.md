@@ -3,7 +3,7 @@
 The client wants an inventory management system for **their** grocery store. The system is to handle/track inventory and discounts of both food and non-food products, and will also need to handle alerts for low stock states, tracking current inventory sales rates relative to previous sales, and suggest discounts on products approaching end of shelf life. Along with extensibility for reporting.
 
 ## Purpose of This Document
-This document represents **Step One** of the Feature23 coding exercise: the requirements plan for client review with John Dupper (jdupper@feature23.com) before development begins. As the exercise specifies, development commences only after client review and approval of this plan. Markdown is used for easy conversion to other formats.
+This document represents **Step One** of the Feature23 coding exercise: the requirements plan for client review with John Dupper before development begins. As the exercise specifies, development commences only after client review and approval of this plan. Markdown is used for easy conversion to other formats.
 
 ---
 
@@ -29,7 +29,7 @@ This document represents **Step One** of the Feature23 coding exercise: the requ
 ### Client Meeting Notes
 
 **Meeting Date:** [To be scheduled]  
-**Attendees:** Matthew Parks (Consultant), John Dupper (Client, jdupper@feature23.com)  
+**Attendees:** Matthew Parks (Consultant), John Dupper (Client)  
 
 Meeting with John confirmed FreshMart operates 4 stores with separate Excel tracking. Three distinct user roles identified: Store Managers (oversee inventory & ensure stock levels), Stock Associates (receive shipments & update counts), and Corporate Staff (future - cross-store reporting). Product/Inventory/Transaction schema provided in sample Excel files. 
 
@@ -297,7 +297,7 @@ This increment comes after enough sales history exists to make the analytics use
 |---|---------|--------------|----------------|-------|
 | 1 | **Full Transaction Audit Trail** | The Excel pain points mention difficulty tracking inventory changes over time | All RECEIVE, SALE, and ADJUSTMENT transactions capture UserID, timestamp, and notes | This creates complete accountability so the who and when is documented for every inventory change|
 | 2 | **Role-Based Access Control** (EPIC-06) | Exercise prompt mentions "store managers" and "associates" but doesn't explicitly ask for authentication | Login system with role based authentication and authorization | Separation of duties prevents unauthorized pricing changes by Associates|
-| 3 | **Multi-Store Architecture ** | | StoreID scoping on all inventory queries, per-store transaction logging | Solves the actual pain point (inefficiency) first rather than building single-store MVP that misses the mark |Client description identifies managing inventory across locations pain point|
+| 3 | **Multi-Store Architecture** | Client description identifies managing inventory across locations as a key pain point | StoreID scoping on all inventory queries, per-store transaction logging | Solves the actual pain point (inefficiency) first rather than building single-store MVP that misses the mark |
 ---
 
 ### Deferred for Future Phases
