@@ -1,9 +1,11 @@
 package com.freshmart.model;
 
 import jakarta.persistence.*;
-import org.hibernate.annotations.CreationTimestamp;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
-import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Entity
 @Table(name = "suppliers")
@@ -14,26 +16,24 @@ public class Supplier {
     @Column(name = "supplier_id")
     private Long supplierId;
     
+    @NotBlank(message = "Supplier name is required")
+    @Size(max = 100, message = "Supplier name must not exceed 100 characters")
     @Column(name = "supplier_name", nullable = false, length = 100)
     private String supplierName;
     
+    @Size(max = 100, message = "Contact name must not exceed 100 characters")
     @Column(name = "contact_name", length = 100)
     private String contactName;
     
+    @Size(max = 20, message = "Phone must not exceed 20 characters")
     @Column(name = "phone", length = 20)
     private String phone;
     
+    @Email(message = "Email must be valid")
+    @Size(max = 100, message = "Email must not exceed 100 characters")
     @Column(name = "email", length = 100)
     private String email;
-    
-    @Column(name = "is_active")
-    private Boolean isActive = true;
-    
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
-    
-    // Getters and Setters
+
     public Long getSupplierId() { return supplierId; }
     public void setSupplierId(Long supplierId) { this.supplierId = supplierId; }
     
@@ -49,8 +49,24 @@ public class Supplier {
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
     
-    public Boolean getIsActive() { return isActive; }
-    public void setIsActive(Boolean isActive) { this.isActive = isActive; }
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Supplier supplier)) return false;
+        return supplierId != null && Objects.equals(supplierId, supplier.supplierId);
+    }
     
-    public LocalDateTime getCreatedAt() { return createdAt; }
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
+    
+    @Override
+    public String toString() {
+        return "Supplier{" +
+                "supplierId=" + supplierId +
+                ", supplierName='" + supplierName + '\'' +
+                ", email='" + email + '\'' +
+                '}';
+    }
 }

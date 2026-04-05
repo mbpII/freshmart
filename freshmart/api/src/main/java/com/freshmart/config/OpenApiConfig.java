@@ -17,6 +17,7 @@ public class OpenApiConfig {
                         .version("1.0.0")
                         .description("REST API for FreshMart grocery inventory management system")
                         .contact(new Contact()
-                                .name("FreshMart Development Team")));
+                                .name("FreshMart Development Team")
+                                .email("dev@freshmart.local")));
     }
 }

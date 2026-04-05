@@ -23,7 +23,7 @@ services:
 
   api:
     build:
-      context: ./apps/api
+      context: ./freshmart/api
       dockerfile: Dockerfile
     container_name: freshmart-api
     environment:

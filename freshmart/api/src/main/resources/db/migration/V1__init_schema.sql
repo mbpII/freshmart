@@ -10,8 +10,7 @@ CREATE TABLE stores (
     state VARCHAR(2) DEFAULT 'CO',
     zip_code VARCHAR(10),
     phone VARCHAR(20),
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    is_active BOOLEAN DEFAULT TRUE
 );
 
 -- Suppliers
