@@ -1,0 +1,24 @@
+{
+  "categories": [
+    "Bakery",
+    "Beverages",
+    "Dairy",
+    "Deli",
+    "Frozen",
+    "Household",
+    "Meat",
+    "Pantry",
+    "Personal Care",
+    "Produce"
+  ],
+  "defaults": {
+    "productName": "",
+    "category": "",
+    "upc": "",
+    "productType": "non-food",
+    "quantityOnHand": 0,
+    "reorderThreshold": 0,
+    "retailPrice": 0,
+    "expirationDate": ""
+  }
+}
