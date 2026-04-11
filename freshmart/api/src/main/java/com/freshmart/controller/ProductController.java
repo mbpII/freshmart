@@ -64,10 +64,8 @@ public class ProductController {
     @Operation(summary = "Get all products for a store")
     public ResponseEntity<List<ProductInventoryResponse>> getProductsByStore(
             @Parameter(description = "Store ID") @RequestParam(required = false) Long storeId) {
-        if (storeId == null) {
-            storeId = 101L;
-        }
-        List<ProductInventoryResponse> response = inventoryService.getInventoryByStore(storeId);
+        var storeIdToUse = storeId != null ? storeId : DEFAULT_STORE_ID;
+        List<ProductInventoryResponse> response = inventoryService.getInventoryByStore(storeIdToUse);
         return ResponseEntity.ok(response);
     }
     
@@ -94,13 +92,12 @@ public class ProductController {
     }
     
     @PostMapping("/{id}/sale")
-    @Operation(summary = "Mark product as on sale")
+    @Operation(summary = "Mark product as on sale for a store")
     public ResponseEntity<ProductInventoryResponse> markOnSale(
             @PathVariable Long id,
             @RequestParam Long storeId,
-            @RequestParam java.math.BigDecimal salePrice) {
-        productService.markProductOnSale(id, salePrice);
-        ProductInventoryResponse response = inventoryService.getProductInventory(id, storeId);
+            @RequestParam java.math.BigDecimal salesPriceModifier) {
+        ProductInventoryResponse response = inventoryService.markProductOnSale(id, storeId, salesPriceModifier);
         return ResponseEntity.ok(response);
     }
     
@@ -109,8 +106,7 @@ public class ProductController {
     public ResponseEntity<ProductInventoryResponse> removeSale(
             @PathVariable Long id,
             @RequestParam Long storeId) {
-        productService.removeSale(id);
-        ProductInventoryResponse response = inventoryService.getProductInventory(id, storeId);
+        ProductInventoryResponse response = inventoryService.removeSale(id, storeId);
         return ResponseEntity.ok(response);
     }
 
