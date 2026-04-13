@@ -7,6 +7,7 @@ import {
   type ColumnDef,
 } from '@tanstack/react-table';
 import { useProducts } from '@/hooks/useProducts';
+import { INVENTORY_PAGE_SIZE } from '@/lib/constants';
 import { formatCurrency } from '@/lib/format';
 import { getPaginationItems } from '@/lib/pagination';
 import type { Product } from '@/types/product';
@@ -32,7 +33,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import productFormConfig from '@/data/product-form.json';
 import type { ProductFormConfig } from '@/types/product';
 
-const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 const categories = (productFormConfig as ProductFormConfig).categories;
 
 function getAlertState(product: Product): 'low-stock' | 'discounted' | 'normal' {
@@ -115,8 +115,6 @@ export default function ProductsIndex() {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState<number>(25);
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
 
   const filtered = useMemo(() => {
     const list = products ?? [];
@@ -127,10 +125,10 @@ export default function ProductsIndex() {
     });
   }, [products, search, categoryFilter]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(filtered.length / INVENTORY_PAGE_SIZE));
   const page = Math.min(Math.max(currentPage, 1), totalPages);
-  const startIndex = (page - 1) * pageSize;
-  const endIndex = Math.min(startIndex + pageSize, filtered.length);
+  const startIndex = (page - 1) * INVENTORY_PAGE_SIZE;
+  const endIndex = Math.min(startIndex + INVENTORY_PAGE_SIZE, filtered.length);
   const paginated = useMemo(
     () => filtered.slice(startIndex, endIndex),
     [filtered, startIndex, endIndex],
@@ -147,7 +145,7 @@ export default function ProductsIndex() {
 
   return (
     <div className="p-4 space-y-3">
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex items-center gap-3">
         <Input
           placeholder="Search products..."
           value={search}
@@ -174,38 +172,6 @@ export default function ProductsIndex() {
             ))}
           </SelectContent>
         </Select>
-        <Select
-          value={String(pageSize)}
-          onValueChange={(v: string | null) => {
-            setPageSize(Number(v ?? 25));
-            setCurrentPage(1);
-          }}
-        >
-          <SelectTrigger className="w-[120px]">
-            <SelectValue placeholder="Page size" />
-          </SelectTrigger>
-          <SelectContent>
-            {PAGE_SIZE_OPTIONS.map((size) => (
-              <SelectItem key={size} value={String(size)}>{size} / page</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <div className="ml-auto flex items-center gap-2">
-          <Button
-            size="sm"
-            variant={viewMode === 'table' ? 'default' : 'outline'}
-            onClick={() => setViewMode('table')}
-          >
-            Table
-          </Button>
-          <Button
-            size="sm"
-            variant={viewMode === 'cards' ? 'default' : 'outline'}
-            onClick={() => setViewMode('cards')}
-          >
-            Cards
-          </Button>
-        </div>
       </div>
 
       {isLoading ? (
@@ -216,43 +182,6 @@ export default function ProductsIndex() {
         </div>
       ) : filtered.length === 0 ? (
         <p className="py-8 text-center text-muted-foreground">No inventory items found</p>
-      ) : viewMode === 'cards' ? (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {paginated.map((product) => (
-            <Link
-              key={product.productId}
-              to={`/products/${product.productId}`}
-              className="rounded-lg border bg-card p-4 hover:bg-accent/40"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="font-medium">{product.productName}</h3>
-                  <p className="text-sm text-muted-foreground">{product.category}</p>
-                </div>
-                {getStatusBadge(product)}
-              </div>
-
-              <div className="mt-4 space-y-1 text-sm">
-                <p>Qty: <span className="font-medium">{product.quantityOnHand}</span></p>
-                <p>
-                  Price:{' '}
-                  {product.isOnSale && product.salePrice ? (
-                    <>
-                      <span className="text-muted-foreground line-through">
-                        {formatCurrency(product.retailPrice)}
-                      </span>{' '}
-                      <span className="font-semibold text-emerald-700">
-                        {formatCurrency(product.salePrice)}
-                      </span>
-                    </>
-                  ) : (
-                    <span className="font-medium">{formatCurrency(product.retailPrice)}</span>
-                  )}
-                </p>
-              </div>
-            </Link>
-          ))}
-        </div>
       ) : (
         <Table>
           <TableHeader>
@@ -283,7 +212,7 @@ export default function ProductsIndex() {
       {filtered.length > 0 && (
         <div className="flex items-center justify-between border-t pt-3 text-sm text-muted-foreground">
           <span>
-            Showing {startIndex + 1}-{endIndex} of {filtered.length} products
+            Showing {startIndex + 1}–{endIndex} of {filtered.length} products
           </span>
           <div className="flex items-center gap-1">
             <Button

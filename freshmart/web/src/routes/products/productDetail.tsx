@@ -37,12 +37,9 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { ArrowLeft, PackageX, Pencil } from "lucide-react";
+import { useDevMode } from '@/lib/dev-mode';
 
 type StockAction = "receive" | "sell" | "adjust";
-
-function isManager() {
-  return false;
-}
 
 function getAlertState(product: {
   quantityOnHand: number;
@@ -66,9 +63,9 @@ export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const productId = Number(id);
+  const { isManager: canManageSales } = useDevMode();
 
   const { data: product, isLoading } = useProduct(productId);
-  const canManageSales = isManager();
   const archiveProduct = useArchiveProduct();
   const markOnSale = useMarkOnSale();
   const removeSale = useRemoveSale();

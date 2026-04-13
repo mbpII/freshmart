@@ -6,17 +6,15 @@ import { FormSection } from '../../components/form/FormSection';
 import { InputField } from '../../components/form/InputField';
 import { RadioGroupField } from '../../components/form/RadioGroupField';
 import { SelectField } from '../../components/form/SelectField';
+import { Button } from '@/components/ui/button';
 import productFormConfig from '../../data/product-form.json';
 import { useCreateProduct, useProduct, useUpdateProduct } from '../../hooks/useProducts';
 import { buildCreateProductInput, buildProductFormDefaults, buildUpdateProductInput } from '../../lib/productForm';
+import { useDevMode } from '@/lib/dev-mode';
 import { productFormSchema } from '../../lib/validation';
 import type { ProductFormConfig, ProductFormData, ProductType } from '../../types/product';
 
 const { categories, defaults } = productFormConfig as ProductFormConfig;
-
-function isManager() {
-  return false;
-}
 
 const categoryOptions = categories.map((category) => ({ label: category, value: category }));
 const productTypeOptions: { label: string; value: ProductType }[] = [
@@ -32,7 +30,7 @@ export default function ProductForm() {
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const { data: product, isLoading: isLoadingProduct } = useProduct(productId);
-  const canManageSales = isManager();
+  const { isManager: canManageSales } = useDevMode();
 
   const {
     register,
@@ -182,31 +180,16 @@ export default function ProductForm() {
         )}
 
         <FormSection title="Price Setup">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <InputField
-              label="Unit Cost"
-              type="number"
-              min={0}
-              step="0.01"
-              placeholder="0.00"
-              registration={register('unitCost', {
-                setValueAs: (value) => (value === '' ? undefined : Number(value)),
-              })}
-              className="w-full rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-400"
-              error={errors.unitCost?.message}
-            />
-
-            <InputField
-              label="Retail Price *"
-              type="number"
-              min={0}
-              step="0.01"
-              placeholder="0.00"
-              registration={register('retailPrice', { valueAsNumber: true })}
-              className="w-full rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-400"
-              error={errors.retailPrice?.message}
-            />
-          </div>
+          <InputField
+            label="Retail Price *"
+            type="number"
+            min={0}
+            step="0.01"
+            placeholder="0.00"
+            registration={register('retailPrice', { valueAsNumber: true })}
+            className="w-full rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-400"
+            error={errors.retailPrice?.message}
+          />
 
           {!canManageSales && (
             <p className="text-xs text-gray-500">Sale controls are manager-only and currently hidden.</p>
@@ -222,10 +205,9 @@ export default function ProductForm() {
         )}
 
         <div className="flex gap-3 pt-4">
-          <button
+          <Button
             type="submit"
             disabled={isSubmitting || createProduct.isPending || updateProduct.isPending}
-            className="btn-primary disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isEditMode
               ? updateProduct.isPending
@@ -234,10 +216,10 @@ export default function ProductForm() {
               : createProduct.isPending
                 ? 'Creating...'
                 : 'Add to Inventory'}
-          </button>
-          <Link to="/" className="btn-secondary">
+          </Button>
+          <Button variant="outline" render={<Link to="/" />}>
             Cancel
-          </Link>
+          </Button>
         </div>
       </form>
     </div>
