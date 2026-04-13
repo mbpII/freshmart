@@ -7,7 +7,6 @@ import {
   useProduct,
   useReceiveStock,
   useRemoveSale,
-  useSellStock,
 } from "@/hooks/useProducts";
 import {
   formatCurrency,
@@ -39,7 +38,7 @@ import { toast } from "sonner";
 import { ArrowLeft, PackageX, Pencil } from "lucide-react";
 import { useDevMode } from '@/lib/dev-mode';
 
-type StockAction = "receive" | "sell" | "adjust";
+type StockAction = "receive" | "adjust";
 
 function getAlertState(product: {
   quantityOnHand: number;
@@ -59,18 +58,17 @@ function getAlertState(product: {
   return "normal";
 }
 
-export default function ProductDetail() {
+export default function ProductPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const productId = Number(id);
-  const { isManager: canManageSales } = useDevMode();
+  const { isManager } = useDevMode();
 
   const { data: product, isLoading } = useProduct(productId);
   const archiveProduct = useArchiveProduct();
   const markOnSale = useMarkOnSale();
   const removeSale = useRemoveSale();
   const receiveStock = useReceiveStock();
-  const sellStock = useSellStock();
   const adjustStock = useAdjustStock();
 
   const [stockAction, setStockAction] = useState<StockAction>("receive");
@@ -88,13 +86,11 @@ export default function ProductDetail() {
   if (isLoading) return <div className="p-4">Loading...</div>;
   if (!product) return <div className="p-4">Product not found</div>;
 
-  const stockPending =
-    receiveStock.isPending || sellStock.isPending || adjustStock.isPending;
+  const stockPending = receiveStock.isPending || adjustStock.isPending;
   const salePending = markOnSale.isPending || removeSale.isPending;
 
   const stockMutationError =
     (receiveStock.error as Error | null)?.message ||
-    (sellStock.error as Error | null)?.message ||
     (adjustStock.error as Error | null)?.message ||
     "";
 
@@ -123,7 +119,7 @@ export default function ProductDetail() {
       setStockError("Notes are required.");
       return;
     }
-    if ((stockAction === "receive" || stockAction === "sell") && qty <= 0) {
+    if (stockAction === "receive" && qty <= 0) {
       setStockError("Quantity must be greater than 0.");
       return;
     }
@@ -146,9 +142,6 @@ export default function ProductDetail() {
     switch (stockAction) {
       case "receive":
         receiveStock.mutate(payload, { onSuccess });
-        break;
-      case "sell":
-        sellStock.mutate(payload, { onSuccess });
         break;
       case "adjust":
         adjustStock.mutate(payload, { onSuccess });
@@ -285,7 +278,6 @@ export default function ProductDetail() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="receive">Receive</SelectItem>
-                    <SelectItem value="sell">Sell</SelectItem>
                     <SelectItem value="adjust">Adjust</SelectItem>
                   </SelectContent>
                 </Select>
@@ -355,7 +347,7 @@ export default function ProductDetail() {
               )}
             </div>
 
-            {canManageSales && !product.isOnSale && (
+            {isManager && !product.isOnSale && (
               <div className="flex items-end gap-3">
                 <div className="w-32 shrink-0">
                   <Label className="text-xs">Input Mode</Label>
@@ -410,7 +402,7 @@ export default function ProductDetail() {
               </div>
             )}
 
-            {canManageSales && product.isOnSale && (
+            {isManager && product.isOnSale && (
               <Button
                 variant="outline"
                 size="sm"
