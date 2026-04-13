@@ -151,10 +151,19 @@ export default function ProductsIndex() {
         <Input
           placeholder="Search products..."
           value={search}
-          onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setCurrentPage(1);
+          }}
           className="max-w-[240px]"
         />
-        <Select value={categoryFilter} onValueChange={(v: string | null) => { setCategoryFilter(v ?? 'all'); setCurrentPage(1); }}>
+        <Select
+          value={categoryFilter}
+          onValueChange={(v: string | null) => {
+            setCategoryFilter(v ?? 'all');
+            setCurrentPage(1);
+          }}
+        >
           <SelectTrigger className="w-[160px]">
             <SelectValue placeholder="All categories" />
           </SelectTrigger>
@@ -274,7 +283,7 @@ export default function ProductsIndex() {
       {filtered.length > 0 && (
         <div className="flex items-center justify-between border-t pt-3 text-sm text-muted-foreground">
           <span>
-            Showing {startIndex + 1}–{endIndex} of {filtered.length} products
+            Showing {startIndex + 1}-{endIndex} of {filtered.length} products
           </span>
           <div className="flex items-center gap-1">
             <Button
