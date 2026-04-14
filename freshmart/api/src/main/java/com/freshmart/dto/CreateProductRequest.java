@@ -16,7 +16,8 @@ public record CreateProductRequest(
     @NotBlank(message = "UPC is required")
     @Size(max = 50, message = "UPC must not exceed 50 characters")
     String upc,
-    
+
+    @Positive(message = "Supplier ID must be positive")
     Long supplierId,
     
     @DecimalMin(value = "0.00", message = "Unit cost must be non-negative")
@@ -36,6 +37,12 @@ public record CreateProductRequest(
     
     @Min(value = 0, message = "Initial quantity must be non-negative")
     Integer initialQuantity,
-    
+
+    @Positive(message = "Store ID must be positive")
     Long storeId
-) {}
+) {
+
+    public CreateProductRequest {
+        ProductRequest.validateCore(isFood, expirationDate, reorderThreshold, reorderQuantity);
+    }
+}

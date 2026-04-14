@@ -5,6 +5,7 @@ import com.freshmart.dto.InventoryResponse;
 import com.freshmart.dto.ProductInventoryResponse;
 import com.freshmart.event.InventoryAdjustedEvent;
 import com.freshmart.exception.InventoryNotFoundException;
+import com.freshmart.exception.StoreNotFoundException;
 import com.freshmart.mapper.InventoryMapper;
 import com.freshmart.mapper.ProductInventoryMapper;
 import com.freshmart.model.Inventory;
@@ -19,10 +20,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class InventoryService {
+
+    private static final String PRODUCT_ALREADY_IN_STORE = "Product already exists in this store's inventory";
+    private static final String POSITIVE_QTY_REQUIRED = "Quantity must be greater than zero";
+    private static final String NON_ZERO_ADJUSTMENT_REQUIRED = "Quantity change must not be zero";
+    private static final String QTY_REQUIRED = "Quantity is required";
+    private static final String QTY_CHANGE_REQUIRED = "Quantity change is required";
     
     private final InventoryRepository inventoryRepository;
     private final StoreRepository storeRepository;
@@ -53,13 +59,12 @@ public class InventoryService {
     
     @Transactional
     public InventoryResponse addToInventory(Long storeId, InventoryRequest request) {
-        Store store = storeRepository.findById(storeId)
-            .orElseThrow(() -> new IllegalArgumentException("Store not found with id: " + storeId));
+        Store store = findStoreByIdOrThrow(storeId);
         
         Product product = productService.getProductEntity(request.productId());
         
         if (inventoryRepository.existsByProductProductIdAndStoreStoreId(request.productId(), storeId)) {
-            throw new IllegalArgumentException("Product already exists in this store's inventory");
+            throw new IllegalArgumentException(PRODUCT_ALREADY_IN_STORE);
         }
         
         Inventory inventory = new Inventory();
@@ -90,43 +95,38 @@ public class InventoryService {
     public List<ProductInventoryResponse> getInventoryByStore(Long storeId) {
         return inventoryRepository.findActiveInventoryByStoreIdWithProduct(storeId).stream()
             .map(this::toProductInventoryResponse)
-            .collect(Collectors.toList());
+            .toList();
     }
     
     @Transactional(readOnly = true)
     public ProductInventoryResponse getProductInventory(Long productId, Long storeId) {
-        Inventory inventory = inventoryRepository.findByProductProductIdAndStoreStoreIdAndIsActiveTrue(productId, storeId)
-            .orElseThrow(() -> new InventoryNotFoundException(
-                "Product " + productId + " not found in store " + storeId + " inventory"));
-        
-        return toProductInventoryResponse(inventory);
+        return toProductInventoryResponse(findActiveInventoryOrThrow(productId, storeId));
     }
     
     @Transactional
     // Soft archive only: marks the store inventory record inactive without deleting the product globally.
     public void archiveFromStore(Long productId, Long storeId) {
-        Inventory inventory = inventoryRepository.findByProductProductIdAndStoreStoreIdAndIsActiveTrue(productId, storeId)
-            .orElseThrow(() -> new InventoryNotFoundException(
-                "Product " + productId + " not found in store " + storeId + " inventory"));
-        
+        Inventory inventory = findActiveInventoryOrThrow(productId, storeId);
         inventory.setActive(false);
         inventoryRepository.save(inventory);
     }
     
     @Transactional
     public ProductInventoryResponse adjustQuantity(Long productId, Long storeId, Integer quantityChange, String notes) {
-        return adjustQuantity(productId, storeId, quantityChange, notes,
-            quantityChange > 0 ? TransactionType.RECEIVE : TransactionType.ADJUSTMENT);
+        validateNonZeroQuantityChange(quantityChange);
+        return adjustQuantity(productId, storeId, quantityChange, notes, TransactionType.ADJUSTMENT);
     }
 
     @Transactional
     public ProductInventoryResponse receiveStock(Long productId, Long storeId, Integer quantity, String notes) {
-        return adjustQuantity(productId, storeId, Math.abs(quantity), notes, TransactionType.RECEIVE);
+        validatePositiveQuantity(quantity);
+        return adjustQuantity(productId, storeId, quantity, notes, TransactionType.RECEIVE);
     }
 
     @Transactional
     public ProductInventoryResponse sellStock(Long productId, Long storeId, Integer quantity, String notes) {
-        return adjustQuantity(productId, storeId, -Math.abs(quantity), notes, TransactionType.SALE);
+        validatePositiveQuantity(quantity);
+        return adjustQuantity(productId, storeId, -quantity, notes, TransactionType.SALE);
     }
 
     private ProductInventoryResponse adjustQuantity(Long productId,
@@ -134,9 +134,7 @@ public class InventoryService {
                                                    Integer quantityChange,
                                                    String notes,
                                                    TransactionType transactionType) {
-        Inventory inventory = inventoryRepository.findByProductProductIdAndStoreStoreIdAndIsActiveTrue(productId, storeId)
-            .orElseThrow(() -> new InventoryNotFoundException(
-                "Product " + productId + " not found in store " + storeId + " inventory"));
+        Inventory inventory = findActiveInventoryOrThrow(productId, storeId);
         
         int newQuantity = inventory.getQuantityOnHand() + quantityChange;
         if (newQuantity < 0) {
@@ -164,9 +162,7 @@ public class InventoryService {
     public ProductInventoryResponse markProductOnSale(Long productId,
                                                       Long storeId,
                                                       BigDecimal salesPriceModifier) {
-        Inventory inventory = inventoryRepository.findByProductProductIdAndStoreStoreIdAndIsActiveTrue(productId, storeId)
-            .orElseThrow(() -> new InventoryNotFoundException(
-                "Product " + productId + " not found in store " + storeId + " inventory"));
+        Inventory inventory = findActiveInventoryOrThrow(productId, storeId);
 
         BigDecimal percentOff = pricingService.normalizeSalesPriceModifier(salesPriceModifier);
         inventory.setIsOnSale(true);
@@ -178,15 +174,44 @@ public class InventoryService {
 
     @Transactional
     public ProductInventoryResponse removeSale(Long productId, Long storeId) {
-        Inventory inventory = inventoryRepository.findByProductProductIdAndStoreStoreIdAndIsActiveTrue(productId, storeId)
-            .orElseThrow(() -> new InventoryNotFoundException(
-                "Product " + productId + " not found in store " + storeId + " inventory"));
+        Inventory inventory = findActiveInventoryOrThrow(productId, storeId);
 
         inventory.setIsOnSale(false);
         inventory.setSalesPriceModifier(null);
 
         Inventory saved = inventoryRepository.save(inventory);
         return toProductInventoryResponse(saved);
+    }
+
+    private Inventory findActiveInventoryOrThrow(Long productId, Long storeId) {
+        return inventoryRepository.findByProductProductIdAndStoreStoreIdAndIsActiveTrue(productId, storeId)
+            .orElseThrow(() -> new InventoryNotFoundException(
+                "Product " + productId + " not found in store " + storeId + " inventory"));
+    }
+
+    private Store findStoreByIdOrThrow(Long storeId) {
+        return storeRepository.findById(storeId)
+            .orElseThrow(() -> new StoreNotFoundException("Store not found with id: " + storeId));
+    }
+
+    private void validatePositiveQuantity(Integer quantity) {
+        requireNonNull(quantity, QTY_REQUIRED);
+        if (quantity <= 0) {
+            throw new IllegalArgumentException(POSITIVE_QTY_REQUIRED);
+        }
+    }
+
+    private void validateNonZeroQuantityChange(Integer quantityChange) {
+        requireNonNull(quantityChange, QTY_CHANGE_REQUIRED);
+        if (quantityChange == 0) {
+            throw new IllegalArgumentException(NON_ZERO_ADJUSTMENT_REQUIRED);
+        }
+    }
+
+    private void requireNonNull(Integer value, String message) {
+        if (value == null) {
+            throw new IllegalArgumentException(message);
+        }
     }
 
     private ProductInventoryResponse toProductInventoryResponse(Inventory inventory) {
