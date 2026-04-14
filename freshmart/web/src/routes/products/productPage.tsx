@@ -44,6 +44,7 @@ import { ArrowLeft, PackageX, Pencil } from "lucide-react";
 import { useDevModeStore } from "@/stores/dev-mode";
 
 type StockAction = "receive" | "adjust";
+const SHOW_EPIC01_PLACEHOLDER_PANELS = false;
 
 export default function ProductPage() {
   const { id } = useParams<{ id: string }>();
@@ -458,54 +459,72 @@ export default function ProductPage() {
         </div>
 
         <div className="space-y-5">
-          <section>
-            <h3 className="mb-2 text-base font-bold uppercase tracking-wide">
-              Sales Velocity (Last 4 Weeks)
-            </h3>
-            <Card
-              className="rounded-md bg-background ring-1 ring-foreground/30"
-              size="sm"
-            >
-              <CardContent className="py-10 text-center">
-                <p className="text-base font-semibold">
-                  Trend: +37% ↑ vs previous week
-                </p>
-                <p className="mt-3 text-base font-semibold">W1 W2 W3 W4</p>
-                <p className="mt-2 text-base font-semibold">
-                  12 18 15 22 units/week
-                </p>
-                <p className="mt-5 text-sm text-muted-foreground">
-                  Placeholder while analytics endpoint is pending.
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Fallback: Sales velocity data unavailable.
-                </p>
-              </CardContent>
-            </Card>
-          </section>
+          {SHOW_EPIC01_PLACEHOLDER_PANELS ? (
+            <>
+              <section>
+                <h3 className="mb-2 text-base font-bold uppercase tracking-wide">
+                  Sales Velocity (Last 4 Weeks)
+                </h3>
+                <Card
+                  className="rounded-md bg-background ring-1 ring-foreground/30"
+                  size="sm"
+                >
+                  <CardContent className="py-10 text-center">
+                    <p className="text-base font-semibold">
+                      Trend: +37% ↑ vs previous week
+                    </p>
+                    <p className="mt-3 text-base font-semibold">W1 W2 W3 W4</p>
+                    <p className="mt-2 text-base font-semibold">
+                      12 18 15 22 units/week
+                    </p>
+                    <p className="mt-5 text-sm text-muted-foreground">
+                      Placeholder while analytics endpoint is pending.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Fallback: Sales velocity data unavailable.
+                    </p>
+                  </CardContent>
+                </Card>
+              </section>
 
-          <section>
-            <h3 className="mb-2 text-base font-bold uppercase tracking-wide">
-              History
-            </h3>
-            <Card
-              className="rounded-md bg-background ring-1 ring-foreground/30"
-              size="sm"
-            >
-              <CardContent className="space-y-2 py-5 text-base">
-                <p>2026-02-20 Restocked +50 units</p>
-                <p>2026-02-18 Price updated $3.49 → $3.99</p>
-                <p>2026-02-15 Sale activated (25% off)</p>
-                <p>...</p>
-                <p className="pt-4 text-sm text-muted-foreground">
-                  Placeholder while history API is pending.
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Fallback: Product history unavailable.
-                </p>
-              </CardContent>
-            </Card>
-          </section>
+              <section>
+                <h3 className="mb-2 text-base font-bold uppercase tracking-wide">
+                  History
+                </h3>
+                <Card
+                  className="rounded-md bg-background ring-1 ring-foreground/30"
+                  size="sm"
+                >
+                  <CardContent className="space-y-2 py-5 text-base">
+                    <p>2026-02-20 Restocked +50 units</p>
+                    <p>2026-02-18 Price updated $3.49 → $3.99</p>
+                    <p>2026-02-15 Sale activated (25% off)</p>
+                    <p>...</p>
+                    <p className="pt-4 text-sm text-muted-foreground">
+                      Placeholder while history API is pending.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Fallback: Product history unavailable.
+                    </p>
+                  </CardContent>
+                </Card>
+              </section>
+            </>
+          ) : (
+            <section>
+              <h3 className="mb-2 text-base font-bold uppercase tracking-wide">
+                Upcoming
+              </h3>
+              <Card
+                className="rounded-md bg-background ring-1 ring-foreground/30"
+                size="sm"
+              >
+                <CardContent className="py-6 text-sm text-muted-foreground">
+                  Sales Velocity and History panels ship in a future epic.
+                </CardContent>
+              </Card>
+            </section>
+          )}
         </div>
       </div>
 

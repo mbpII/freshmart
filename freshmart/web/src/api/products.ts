@@ -9,26 +9,42 @@ import { DEFAULT_STORE_ID } from '../lib/constants';
 
 const API_BASE = '/api';
 
+const nullToUndefined = <T>(value: T | null | undefined): T | undefined =>
+  value ?? undefined;
+
+const optionalStringSchema = z
+  .string()
+  .optional()
+  .nullable()
+  .transform(nullToUndefined);
+
+const optionalNumberSchema = z
+  .coerce
+  .number()
+  .optional()
+  .nullable()
+  .transform(nullToUndefined);
+
 const productSchema = z.object({
   productId: z.coerce.number(),
   storeId: z.coerce.number(),
   productName: z.string(),
   category: z.string(),
   upc: z.string(),
-  supplierName: z.string().optional().nullable().transform((value) => value ?? undefined),
-  unitCost: z.coerce.number().optional().nullable().transform((value) => value ?? undefined),
+  supplierName: optionalStringSchema,
+  unitCost: optionalNumberSchema,
   retailPrice: z.coerce.number(),
   isOnSale: z.boolean(),
-  salesPriceModifier: z.coerce.number().optional().nullable().transform((value) => value ?? undefined),
-  salePrice: z.coerce.number().optional().nullable().transform((value) => value ?? undefined),
+  salesPriceModifier: optionalNumberSchema,
+  salePrice: optionalNumberSchema,
   quantityOnHand: z.coerce.number(),
   lastUpdated: z.string(),
   isFood: z.boolean(),
   isActive: z.boolean(),
-  expirationDate: z.string().optional().nullable().transform((value) => value ?? undefined),
-  reorderThreshold: z.coerce.number().optional().nullable().transform((value) => value ?? undefined),
-  reorderQuantity: z.coerce.number().optional().nullable().transform((value) => value ?? undefined),
-  inventoryId: z.coerce.number().optional().nullable().transform((value) => value ?? undefined),
+  expirationDate: optionalStringSchema,
+  reorderThreshold: optionalNumberSchema,
+  reorderQuantity: optionalNumberSchema,
+  inventoryId: optionalNumberSchema,
 });
 
 const productCatalogSchema = z.object({
@@ -36,16 +52,16 @@ const productCatalogSchema = z.object({
   productName: z.string(),
   category: z.string(),
   upc: z.string(),
-  supplierName: z.string().optional().nullable().transform((value) => value ?? undefined),
-  unitCost: z.coerce.number().optional().nullable().transform((value) => value ?? undefined),
+  supplierName: optionalStringSchema,
+  unitCost: optionalNumberSchema,
   retailPrice: z.coerce.number(),
   isOnSale: z.boolean(),
-  salesPriceModifier: z.coerce.number().optional().nullable().transform((value) => value ?? undefined),
-  salePrice: z.coerce.number().optional().nullable().transform((value) => value ?? undefined),
+  salesPriceModifier: optionalNumberSchema,
+  salePrice: optionalNumberSchema,
   isFood: z.boolean(),
-  reorderThreshold: z.coerce.number().optional().nullable().transform((value) => value ?? undefined),
-  reorderQuantity: z.coerce.number().optional().nullable().transform((value) => value ?? undefined),
-  expirationDate: z.string().optional().nullable().transform((value) => value ?? undefined),
+  reorderThreshold: optionalNumberSchema,
+  reorderQuantity: optionalNumberSchema,
+  expirationDate: optionalStringSchema,
   isActive: z.boolean(),
 });
 
