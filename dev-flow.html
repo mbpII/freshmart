@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FreshMart — PR & Commit Flow</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #58a6ff;
+      --green: #3fb950;
+      --yellow: #d29922;
+      --purple: #bc8cff;
+      --red: #f85149;
+      --orange: #f0883e;
+      --merged: #8957e5;
+      --open: #238636;
+      --closed: #6e7681;
+      --connector: #21262d;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      padding: 40px 24px 80px;
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .subtitle {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 40px;
+    }
+
+    /* ── Timeline rail ── */
+    .timeline {
+      position: relative;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 18px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--border);
+    }
+
+    /* ── Phase header ── */
+    .phase {
+      position: relative;
+      margin-bottom: 8px;
+      margin-top: 36px;
+    }
+    .phase:first-child { margin-top: 0; }
+    .phase-dot {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      color: var(--muted);
+      z-index: 1;
+    }
+    .phase-label {
+      margin-left: 46px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 2px 0;
+    }
+
+    /* ── PR card ── */
+    .pr-card {
+      position: relative;
+      margin-left: 46px;
+      margin-bottom: 6px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      overflow: hidden;
+    }
+    .pr-card::before {
+      content: '';
+      position: absolute;
+      left: -30px;
+      top: 28px;
+      width: 28px;
+      height: 2px;
+      background: var(--border);
+    }
+    .pr-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 14px 16px 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .pr-header:hover { background: rgba(255,255,255,0.03); }
+    .pr-icon {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      margin-top: 1px;
+    }
+    .pr-icon.merged { background: var(--merged); color: #fff; }
+    .pr-icon.open   { background: var(--open);   color: #fff; }
+    .pr-info { flex: 1; min-width: 0; }
+    .pr-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+    .pr-meta {
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .badge {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid transparent;
+    }
+    .badge.merged { border-color: var(--merged); color: var(--merged); }
+    .badge.open   { border-color: var(--open);   color: var(--green); }
+    .badge.backend  { background: rgba(88,166,255,0.1); color: var(--accent); border-color: rgba(88,166,255,0.3); }
+    .badge.frontend { background: rgba(240,136,62,0.1); color: var(--orange); border-color: rgba(240,136,62,0.3); }
+    .badge.refactor { background: rgba(188,140,255,0.1); color: var(--purple); border-color: rgba(188,140,255,0.3); }
+    .badge.infra    { background: rgba(63,185,80,0.1); color: var(--green); border-color: rgba(63,185,80,0.3); }
+    .pr-toggle {
+      flex-shrink: 0;
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 3px;
+      transition: transform 0.2s;
+    }
+    .pr-toggle.open-state { transform: rotate(90deg); }
+
+    /* ── Expandable body ── */
+    .pr-body { display: none; border-top: 1px solid var(--border); }
+    .pr-body.expanded { display: block; }
+
+    /* ── Decision block ── */
+    .decisions {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(188,140,255,0.04);
+    }
+    .decisions-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--purple);
+      margin-bottom: 8px;
+    }
+    .decision-item {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+    .decision-item:last-child { margin-bottom: 0; }
+    .decision-bullet {
+      flex-shrink: 0;
+      color: var(--purple);
+      margin-top: 1px;
+    }
+    .decision-text { color: var(--text); }
+    .decision-text .why {
+      color: var(--muted);
+      font-style: italic;
+      display: block;
+      font-size: 12px;
+      margin-top: 1px;
+    }
+
+    /* ── Commits list ── */
+    .commits { padding: 12px 16px; }
+    .commits-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .commit {
+      display: flex;
+      gap: 10px;
+      padding: 5px 0;
+      border-bottom: 1px solid rgba(48,54,61,0.5);
+      align-items: flex-start;
+    }
+    .commit:last-child { border-bottom: none; padding-bottom: 0; }
+    .commit-sha {
+      flex-shrink: 0;
+      font-family: 'SFMono-Regular', Consolas, monospace;
+      font-size: 11px;
+      color: var(--accent);
+      background: rgba(88,166,255,0.08);
+      padding: 1px 5px;
+      border-radius: 4px;
+      margin-top: 1px;
+      white-space: nowrap;
+    }
+    .commit-msg { color: var(--text); font-size: 13px; flex: 1; }
+    .commit-date { flex-shrink: 0; color: var(--muted); font-size: 11px; white-space: nowrap; margin-top: 2px; }
+
+    /* ── Standalone commit (no PR) ── */
+    .lone-commit {
+      position: relative;
+      margin-left: 46px;
+      margin-bottom: 4px;
+      display: flex;
+      gap: 10px;
+      padding: 7px 12px;
+      border: 1px solid var(--connector);
+      border-radius: 6px;
+      align-items: flex-start;
+    }
+    .lone-commit::before {
+      content: '';
+      position: absolute;
+      left: -30px;
+      top: 16px;
+      width: 28px;
+      height: 2px;
+      background: var(--connector);
+    }
+    .lone-dot {
+      position: absolute;
+      left: -37px;
+      top: 10px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+
+    /* ── Open PR banner ── */
+    .open-pr-banner {
+      margin-left: 46px;
+      margin-top: 8px;
+      padding: 8px 14px;
+      background: rgba(35,134,54,0.08);
+      border: 1px dashed rgba(63,185,80,0.3);
+      border-radius: 6px;
+      color: var(--green);
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ── Legend ── */
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 32px;
+      max-width: 860px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .pr-meta { flex-direction: column; gap: 4px; }
+      .commit-date { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<h1>FreshMart — PR &amp; Commit Flow</h1>
+<p class="subtitle">Visual history of decisions, pull requests, and commits across the project lifecycle</p>
+
+<div class="legend">
+  <div class="legend-item"><span class="badge merged">merged</span> Merged PR</div>
+  <div class="legend-item"><span class="badge open">open</span> Open PR</div>
+  <div class="legend-item"><span class="badge backend">backend</span> Backend</div>
+  <div class="legend-item"><span class="badge frontend">frontend</span> Frontend</div>
+  <div class="legend-item"><span class="badge refactor">refactor</span> Refactor</div>
+  <div class="legend-item"><span class="badge infra">infra</span> Infra</div>
+  <div class="legend-item" style="color: var(--purple); font-size:12px;">&#9670; Key decision</div>
+</div>
+
+<div class="timeline">
+
+  <!-- ══════════════════════════════════════════════════════
+       PHASE 0 — Requirements & Design
+       ══════════════════════════════════════════════════════ -->
+  <div class="phase">
+    <div class="phase-dot">0</div>
+    <div class="phase-label">Phase 0 &nbsp;·&nbsp; Requirements &amp; Design &nbsp;·&nbsp; Feb – Mar 6</div>
+  </div>
+
+  <div class="lone-commit">
+    <div class="lone-dot"></div>
+    <span class="commit-sha">4a6a78c</span>
+    <span class="commit-msg">Initial commit: Inventory Management System project skeleton</span>
+    <span class="commit-date">Feb 20</span>
+  </div>
+  <div class="lone-commit">
+    <div class="lone-dot"></div>
+    <span class="commit-sha">653387e</span>
+    <span class="commit-msg">Add EPIC-01–05 with business values, future considerations section</span>
+    <span class="commit-date">Feb 20</span>
+  </div>
+  <div class="lone-commit">
+    <div class="lone-dot"></div>
+    <span class="commit-sha">ecb73da</span>
+    <span class="commit-msg">wip epic 4 user stories</span>
+    <span class="commit-date">Feb 22</span>
+  </div>
+  <div class="lone-commit">
+    <div class="lone-dot"></div>
+    <span class="commit-sha">499d0a0</span>
+    <span class="commit-msg">making changes for update with john</span>
+    <span class="commit-date">Feb 23</span>
+  </div>
+  <div class="lone-commit">
+    <div class="lone-dot"></div>
+    <span class="commit-sha">8b71302</span>
+    <span class="commit-msg">docs: complete Step One requirements plan — 4-store arch, EPIC-06 multi-store, UPC replaces SKU</span>
+    <span class="commit-date">Mar 4</span>
+  </div>
+  <div class="lone-commit">
+    <div class="lone-dot"></div>
+    <span class="commit-sha">8758bb1</span>
+    <span class="commit-msg">docs: address PR review feedback — expand client meeting notes, rename Increment 1</span>
+    <span class="commit-date">Mar 6</span>
+  </div>
+  <div class="lone-commit">
+    <div class="lone-dot"></div>
+    <span class="commit-sha">0b1a131</span>
+    <span class="commit-msg">refactor(design-doc): remove tech commitments (Java/Spring), replace ASCII wireframes with drawio</span>
+    <span class="commit-date">Mar 6</span>
+  </div>
+  <div class="lone-commit">
+    <div class="lone-dot"></div>
+    <span class="commit-sha">37dd2a7</span>
+    <span class="commit-msg">refactor(design-doc): fold open design decisions into deferred table (per-store vs shared pricing)</span>
+    <span class="commit-date">Mar 6</span>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════
+       PHASE 1 — Infrastructure & Scaffold
+       ══════════════════════════════════════════════════════ -->
+  <div class="phase">
+    <div class="phase-dot">1</div>
+    <div class="phase-label">Phase 1 &nbsp;·&nbsp; Infrastructure &amp; Scaffold &nbsp;·&nbsp; Mar 26</div>
+  </div>
+
+  <div class="lone-commit">
+    <div class="lone-dot"></div>
+    <span class="commit-sha">2595e1e</span>
+    <span class="commit-msg">feat(inventory-system): Initial project — Vite + React + TS frontend, Spring Boot 3.2 backend</span>
+    <span class="commit-date">Mar 26</span>
+  </div>
+  <div class="lone-commit">
+    <div class="lone-dot"></div>
+    <span class="commit-sha">df7800d</span>
+    <span class="commit-msg">feat(docker): Docker Compose + PostgreSQL + Adminer, multi-stage Dockerfile, Maven wrapper</span>
+    <span class="commit-date">Mar 26</span>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════
+       PHASE 2 — Frontend Scaffolding
+       ══════════════════════════════════════════════════════ -->
+  <div class="phase">
+    <div class="phase-dot">2</div>
+    <div class="phase-label">Phase 2 &nbsp;·&nbsp; Frontend Scaffolding &nbsp;·&nbsp; Mar 28</div>
+  </div>
+
+  <div class="lone-commit">
+    <div class="lone-dot"></div>
+    <span class="commit-sha">f68073c</span>
+    <span class="commit-msg">sloppy but working</span>
+    <span class="commit-date">Mar 28</span>
+  </div>
+  <div class="lone-commit">
+    <div class="lone-dot"></div>
+    <span class="commit-sha">84b362f</span>
+    <span class="commit-msg">refactor(products): centralize form types and helpers</span>
+    <span class="commit-date">Mar 28</span>
+  </div>
+  <div class="lone-commit">
+    <div class="lone-dot"></div>
+    <span class="commit-sha">78f4fcc</span>
+    <span class="commit-msg">now need styling, then backend</span>
+    <span class="commit-date">Mar 28</span>
+  </div>
+  <div class="lone-commit">
+    <div class="lone-dot"></div>
+    <span class="commit-sha">905ee0e</span>
+    <span class="commit-msg">polishing modeling</span>
+    <span class="commit-date">Apr 5</span>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════
+       PR #1 — EPIC-01 Backend
+       ══════════════════════════════════════════════════════ -->
+  <div class="phase">
+    <div class="phase-dot">3</div>
+    <div class="phase-label">Phase 3 &nbsp;·&nbsp; EPIC-01 Backend API &nbsp;·&nbsp; Apr 6–7</div>
+  </div>
+
+  <div class="pr-card" id="pr1">
+    <div class="pr-header" onclick="toggle('pr1')">
+      <div class="pr-icon merged">#1</div>
+      <div class="pr-info">
+        <div class="pr-title">feat(backend): EPIC-01 Inventory Management API</div>
+        <div class="pr-meta">
+          <span class="badge merged">merged</span>
+          <span class="badge backend">backend</span>
+          <span>Apr 6 → Apr 7</span>
+          <span>epic-01-backend → master</span>
+        </div>
+      </div>
+      <span class="pr-toggle" id="pr1-toggle">&#9654;</span>
+    </div>
+    <div class="pr-body" id="pr1-body">
+      <div class="decisions">
+        <div class="decisions-title">&#9670; Key Decisions Made</div>
+        <div class="decision-item">
+          <span class="decision-bullet">&#9670;</span>
+          <span class="decision-text">
+            <strong>Two separate endpoints for product creation</strong> — POST /api/products (catalog) + POST /api/stores/{id}/inventory (store linkage)
+            <span class="why">Kept catalog and store concerns separate; simpler mental model at this stage</span>
+          </span>
+        </div>
+        <div class="decision-item">
+          <span class="decision-bullet">&#9670;</span>
+          <span class="decision-text">
+            <strong>Soft delete via inventory.is_active = false</strong> (per-store only)
+            <span class="why">Products remain in catalog; only the store–product link is deactivated</span>
+          </span>
+        </div>
+        <div class="decision-item">
+          <span class="decision-bullet">&#9670;</span>
+          <span class="decision-text">
+            <strong>CurrentUserService stub</strong> for store ID derivation
+            <span class="why">Swappable later without touching business logic</span>
+          </span>
+        </div>
+        <div class="decision-item">
+          <span class="decision-bullet">&#9670;</span>
+          <span class="decision-text">
+            <strong>Automatic transaction recording via domain events</strong> (@TransactionalEventListener)
+            <span class="why">Audit trail without coupling service layer to recording logic</span>
+          </span>
+        </div>
+        <div class="decision-item">
+          <span class="decision-bullet">&#9670;</span>
+          <span class="decision-text">
+            <strong>Flat ProductInventoryResponse DTO</strong>
+            <span class="why">Frontend needs one shape; avoids nested object traversal on the client</span>
+          </span>
+        </div>
+      </div>
+      <div class="commits">
+        <div class="commits-title">Commits</div>
+        <div class="commit">
+          <span class="commit-sha">e8681d5</span>
+          <span class="commit-msg">feat(backend): EPIC-01 complete — JPA repos, domain events, DTOs, MapStruct mappers, REST controllers, GlobalExceptionHandler</span>
+          <span class="commit-date">Apr 6</span>
+        </div>
+        <div class="commit">
+          <span class="commit-sha">1410dda</span>
+          <span class="commit-msg">chore: remove duplicate root-level artifacts</span>
+          <span class="commit-date">Apr 7</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════
+       PHASE 4 — Frontend–Backend Integration
+       ══════════════════════════════════════════════════════ -->
+  <div class="phase">
+    <div class="phase-dot">4</div>
+    <div class="phase-label">Phase 4 &nbsp;·&nbsp; Frontend–Backend Integration &nbsp;·&nbsp; Apr 10</div>
+  </div>
+
+  <div class="lone-commit">
+    <div class="lone-dot"></div>
+    <span class="commit-sha">499e9ab</span>
+    <span class="commit-msg" style="flex:1">
+      feat: wire frontend to real API, consolidate controllers, fix schema &amp; mapper bugs
+      <span style="display:block; color: var(--muted); font-size:12px; margin-top:2px;">
+        Consolidated ProductInventoryController → ProductController &nbsp;·&nbsp;
+        POST /api/products now takes optional initialQuantity + storeId &nbsp;·&nbsp;
+        V5 migration: all IDs → BIGINT &nbsp;·&nbsp;
+        Fixed hardcoded isFood=false in MapStruct mapper &nbsp;·&nbsp;
+        ARM-compatible Dockerfile
+      </span>
+    </span>
+    <span class="commit-date">Apr 10</span>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════
+       PR #2 — Backend Refactor
+       ══════════════════════════════════════════════════════ -->
+  <div class="phase">
+    <div class="phase-dot">5</div>
+    <div class="phase-label">Phase 5 &nbsp;·&nbsp; Backend Controller Cleanup &nbsp;·&nbsp; Apr 11</div>
+  </div>
+
+  <div class="pr-card" id="pr2">
+    <div class="pr-header" onclick="toggle('pr2')">
+      <div class="pr-icon merged">#2</div>
+      <div class="pr-info">
+        <div class="pr-title">refactor(api): reduce controller noise and clarify archive behavior</div>
+        <div class="pr-meta">
+          <span class="badge merged">merged</span>
+          <span class="badge refactor">refactor</span>
+          <span>Apr 11</span>
+          <span>refactor/epic1-controller-cleanup → master</span>
+        </div>
+      </div>
+      <span class="pr-toggle" id="pr2-toggle">&#9654;</span>
+    </div>
+    <div class="pr-body" id="pr2-body">
+      <div class="decisions">
+        <div class="decisions-title">&#9670; Key Decisions Made</div>
+        <div class="decision-item">
+          <span class="decision-bullet">&#9670;</span>
+          <span class="decision-text">
+            <strong>Extract CreateProductRequest → ProductRequest conversion into controller helper</strong>
+            <span class="why">Controllers were doing DTO mapping — moved it out to reduce noise</span>
+          </span>
+        </div>
+        <div class="decision-item">
+          <span class="decision-bullet">&#9670;</span>
+          <span class="decision-text">
+            <strong>Replace magic store fallback with DEFAULT_STORE_ID constant</strong>
+            <span class="why">Named constant makes intent visible; magic numbers hide assumptions</span>
+          </span>
+        </div>
+        <div class="decision-item">
+          <span class="decision-bullet">&#9670;</span>
+          <span class="decision-text">
+            <strong>Remove hidden isFood override from ProductMapper</strong>
+            <span class="why">Mapper was silently overriding a field — dangerous, non-obvious behavior</span>
+          </span>
+        </div>
+        <div class="decision-item">
+          <span class="decision-bullet">&#9670;</span>
+          <span class="decision-text">
+            <strong>Add comments clarifying soft-archive semantics</strong>
+            <span class="why">DELETE endpoint archives (is_active=false), not hard-deletes — easy to miss</span>
+          </span>
+        </div>
+      </div>
+      <div class="commits">
+        <div class="commits-title">Commits</div>
+        <div class="commit">
+          <span class="commit-sha">d5fdc9a</span>
+          <span class="commit-msg">refactor(api): reduce controller noise and clarify archive behavior</span>
+          <span class="commit-date">Apr 11</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- codex UI branch merge (outside a numbered PR) -->
+  <div class="lone-commit" style="margin-top:6px;">
+    <div class="lone-dot"></div>
+    <span class="commit-sha">3dda179</span>
+    <span class="commit-msg">Merge branch 'codex-fresh-epic01-ui' — Epic 01 UI work landed on master</span>
+    <span class="commit-date">Apr 11</span>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════
+       PR #3 — UI Simplification
+       ══════════════════════════════════════════════════════ -->
+  <div class="phase">
+    <div class="phase-dot">6</div>
+    <div class="phase-label">Phase 6 &nbsp;·&nbsp; UI Redesign &amp; Simplification &nbsp;·&nbsp; Apr 12–13</div>
+  </div>
+
+  <div class="lone-commit">
+    <div class="lone-dot"></div>
+    <span class="commit-sha">2c3753e</span>
+    <span class="commit-msg">redesign web inventory UI and improve status handling</span>
+    <span class="commit-date">Apr 12</span>
+  </div>
+
+  <div class="pr-card" id="pr3">
+    <div class="pr-header" onclick="toggle('pr3')">
+      <div class="pr-icon merged">#3</div>
+      <div class="pr-info">
+        <div class="pr-title">feat(web): simplify inventory actions and add UI controls</div>
+        <div class="pr-meta">
+          <span class="badge merged">merged</span>
+          <span class="badge frontend">frontend</span>
+          <span>Apr 13</span>
+          <span>followup/ui-scope-cleanup → master</span>
+        </div>
+      </div>
+      <span class="pr-toggle" id="pr3-toggle">&#9654;</span>
+    </div>
+    <div class="pr-body" id="pr3-body">
+      <div class="decisions">
+        <div class="decisions-title">&#9670; Key Decisions Made</div>
+        <div class="decision-item">
+          <span class="decision-bullet">&#9670;</span>
+          <span class="decision-text">
+            <strong>Remove sell flow entirely — use adjust instead</strong>
+            <span class="why">Sell was redundant with adjust; fewer surfaces = fewer bugs, simpler UX</span>
+          </span>
+        </div>
+        <div class="decision-item">
+          <span class="decision-bullet">&#9670;</span>
+          <span class="decision-text">
+            <strong>Add page size selector + table/card view toggle</strong>
+            <span class="why">Users need flexibility without a dedicated search page; progressive disclosure</span>
+          </span>
+        </div>
+        <div class="decision-item">
+          <span class="decision-bullet">&#9670;</span>
+          <span class="decision-text">
+            <strong>UI-only scope: no backend changes</strong>
+            <span class="why">Kept frontend and backend concerns cleanly separated across PRs</span>
+          </span>
+        </div>
+      </div>
+      <div class="commits">
+        <div class="commits-title">Commits</div>
+        <div class="commit">
+          <span class="commit-sha">642052a</span>
+          <span class="commit-msg">feat(web): simplify inventory actions, add pagination control and card view</span>
+          <span class="commit-date">Apr 13</span>
+        </div>
+        <div class="commit">
+          <span class="commit-sha">0022fc6</span>
+          <span class="commit-msg">fix local followup integration and restore simple inventory list</span>
+          <span class="commit-date">Apr 13</span>
+        </div>
+        <div class="commit">
+          <span class="commit-sha">dc147cc</span>
+          <span class="commit-msg">align sales controls with manager mode and simplify stock actions</span>
+          <span class="commit-date">Apr 13</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════
+       PR #4 — Big Refactor (OPEN)
+       ══════════════════════════════════════════════════════ -->
+  <div class="phase">
+    <div class="phase-dot">7</div>
+    <div class="phase-label">Phase 7 &nbsp;·&nbsp; Contract Consistency &amp; DRY Cleanup &nbsp;·&nbsp; Apr 14 (in review)</div>
+  </div>
+
+  <div class="pr-card" id="pr4">
+    <div class="pr-header" onclick="toggle('pr4')">
+      <div class="pr-icon open">#4</div>
+      <div class="pr-info">
+        <div class="pr-title">refactor: backend contract consistency, DRY cleanup, and frontend UI normalization</div>
+        <div class="pr-meta">
+          <span class="badge open">open</span>
+          <span class="badge backend">backend</span>
+          <span class="badge frontend">frontend</span>
+          <span class="badge refactor">refactor</span>
+          <span>Apr 14 → present</span>
+          <span>feat/epic-01-complete → master</span>
+        </div>
+      </div>
+      <span class="pr-toggle" id="pr4-toggle">&#9654;</span>
+    </div>
+    <div class="pr-body" id="pr4-body">
+      <div class="decisions">
+        <div class="decisions-title">&#9670; Key Decisions Made</div>
+        <div class="decision-item">
+          <span class="decision-bullet">&#9670;</span>
+          <span class="decision-text">
+            <strong>Introduce StoreNotFoundException, SupplierNotFoundException → 404</strong>
+            <span class="why">All missing-resource cases should behave consistently; previous gap caused silent 500s</span>
+          </span>
+        </div>
+        <div class="decision-item">
+          <span class="decision-bullet">&#9670;</span>
+          <span class="decision-text">
+            <strong>Strict quantity semantics: receive/sell require &gt; 0; adjust requires ≠ 0 and always records ADJUSTMENT</strong>
+            <span class="why">Removed Math.abs() normalization — callers must pass correct sign, preventing silent data corruption</span>
+          </span>
+        </div>
+        <div class="decision-item">
+          <span class="decision-bullet">&#9670;</span>
+          <span class="decision-text">
+            <strong>Move DTO conversion from controller into mapper layer</strong>
+            <span class="why">Controllers become pure orchestration; mappers own shape transformation</span>
+          </span>
+        </div>
+        <div class="decision-item">
+          <span class="decision-bullet">&#9670;</span>
+          <span class="decision-text">
+            <strong>Shared static ProductRequest.validateCore(…) used by both create and update DTOs</strong>
+            <span class="why">Cross-field validation logic was duplicated — single source of truth</span>
+          </span>
+        </div>
+        <div class="decision-item">
+          <span class="decision-bullet">&#9670;</span>
+          <span class="decision-text">
+            <strong>Move store lookup-or-throw into StoreService; delete SaleRequest, unused repo methods</strong>
+            <span class="why">Controllers should orchestrate, not own domain queries; dead code removed to reduce surface area</span>
+          </span>
+        </div>
+        <div class="decision-item">
+          <span class="decision-bullet">&#9670;</span>
+          <span class="decision-text">
+            <strong>Hide Dismiss / Update Threshold buttons behind isManager guard</strong>
+            <span class="why">Manager-only actions leaked into associate view — guarded by role check</span>
+          </span>
+        </div>
+        <div class="decision-item">
+          <span class="decision-bullet">&#9670;</span>
+          <span class="decision-text">
+            <strong>Upgrade backend to JDK 21 (pom.xml + Dockerfile)</strong>
+            <span class="why">Align with LTS; unlocks virtual threads and pattern matching for future use</span>
+          </span>
+        </div>
+        <div class="decision-item">
+          <span class="decision-bullet">&#9670;</span>
+          <span class="decision-text">
+            <strong>Normalize rounded-none → rounded-md; align edit page to shared design tokens</strong>
+            <span class="why">UI inconsistencies accumulated across pages; single design language pass to fix them all</span>
+          </span>
+        </div>
+      </div>
+      <div class="commits">
+        <div class="commits-title">Branch head commit</div>
+        <div class="commit">
+          <span class="commit-sha">23ae244</span>
+          <span class="commit-msg">feat/epic-01-complete HEAD — full refactor: exceptions, validation, mapper, services, dead code removal, UI normalization</span>
+          <span class="commit-date">Apr 14</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="open-pr-banner">
+    &#9679; PR #4 is currently open — awaiting review / merge into master
+  </div>
+
+</div><!-- /timeline -->
+
+<script>
+  function toggle(id) {
+    const body = document.getElementById(id + '-body');
+    const tog  = document.getElementById(id + '-toggle');
+    const expanded = body.classList.toggle('expanded');
+    tog.classList.toggle('open-state', expanded);
+  }
+  // Start with PR cards collapsed so the page is scannable
+</script>
+
+</body>
+</html>
