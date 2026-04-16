@@ -156,16 +156,28 @@ export const productApi = {
     await requestNoContent(`/products/${id}`, { method: 'DELETE' });
   },
 
-  markOnSale: async (
+  markOnSaleByPercent: async (
     id: number,
-    salesPriceModifier: number,
+    percentOff: number,
     storeId: number = DEFAULT_STORE_ID,
   ): Promise<Product> => {
     const data = await requestJson(
-      `/products/${id}/sale?storeId=${storeId}&salesPriceModifier=${salesPriceModifier}`,
+      `/products/${id}/sale/percent?storeId=${storeId}&value=${percentOff}`,
       { method: 'POST' },
     );
-    return parseWithSchema(productSchema, data, 'mark on sale');
+    return parseWithSchema(productSchema, data, 'mark on sale by percent');
+  },
+
+  markOnSaleByFlat: async (
+    id: number,
+    flatPrice: number,
+    storeId: number = DEFAULT_STORE_ID,
+  ): Promise<Product> => {
+    const data = await requestJson(
+      `/products/${id}/sale/flat?storeId=${storeId}&value=${flatPrice}`,
+      { method: 'POST' },
+    );
+    return parseWithSchema(productSchema, data, 'mark on sale by flat price');
   },
 
   removeSale: async (

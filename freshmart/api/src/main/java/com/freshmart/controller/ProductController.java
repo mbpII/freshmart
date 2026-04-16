@@ -98,13 +98,22 @@ public class ProductController {
         return ResponseEntity.noContent().build();
     }
     
-    @PostMapping("/{id}/sale")
-    @Operation(summary = "Mark product as on sale for a store")
-    public ResponseEntity<ProductInventoryResponse> markOnSale(
+    @PostMapping("/{id}/sale/percent")
+    @Operation(summary = "Mark product on sale by percent off (e.g. value=10 means 10% off)")
+    public ResponseEntity<ProductInventoryResponse> markOnSaleByPercent(
             @PathVariable @Positive Long id,
             @RequestParam(name = "storeId") @Positive Long storeId,
-            @RequestParam(name = "salesPriceModifier") BigDecimal salesPriceModifier) {
-        return ResponseEntity.ok(inventoryService.markProductOnSale(id, storeId, salesPriceModifier));
+            @RequestParam(name = "value") BigDecimal value) {
+        return ResponseEntity.ok(inventoryService.markProductOnSaleByPercent(id, storeId, value));
+    }
+
+    @PostMapping("/{id}/sale/flat")
+    @Operation(summary = "Mark product on sale by flat sale price (e.g. value=5.99 sets sale price to $5.99)")
+    public ResponseEntity<ProductInventoryResponse> markOnSaleByFlat(
+            @PathVariable @Positive Long id,
+            @RequestParam(name = "storeId") @Positive Long storeId,
+            @RequestParam(name = "value") BigDecimal value) {
+        return ResponseEntity.ok(inventoryService.markProductOnSaleByFlat(id, storeId, value));
     }
     
     @DeleteMapping("/{id}/sale")

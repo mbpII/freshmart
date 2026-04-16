@@ -14,7 +14,7 @@ public record CreateProductRequest(
     String category,
     
     @NotBlank(message = "UPC is required")
-    @Size(max = 50, message = "UPC must not exceed 50 characters")
+    @Size(max = 12, message = "UPC must not exceed 12 characters")
     String upc,
 
     @Positive(message = "Supplier ID must be positive")

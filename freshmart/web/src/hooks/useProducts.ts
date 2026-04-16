@@ -60,12 +60,20 @@ export function useArchiveProduct() {
   });
 }
 
+type MarkOnSaleInput = {
+  productId: number;
+  mode: 'percent' | 'flat';
+  value: number;
+};
+
 export function useMarkOnSale() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ productId, salesPriceModifier }: { productId: number; salesPriceModifier: number }) =>
-      productApi.markOnSale(productId, salesPriceModifier),
+    mutationFn: ({ productId, mode, value }: MarkOnSaleInput) =>
+      mode === 'percent'
+        ? productApi.markOnSaleByPercent(productId, value)
+        : productApi.markOnSaleByFlat(productId, value),
     onSuccess: (_, { productId }) => invalidateProductQueries(qc, productId),
   });
 }

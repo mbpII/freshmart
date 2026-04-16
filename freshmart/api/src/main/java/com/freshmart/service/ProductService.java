@@ -10,16 +10,17 @@ import com.freshmart.model.Product;
 import com.freshmart.model.Supplier;
 import com.freshmart.repository.ProductRepository;
 import com.freshmart.repository.SupplierRepository;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ProductService {
-    
+
     private final ProductRepository productRepository;
     private final SupplierRepository supplierRepository;
     private final ProductMapper productMapper;
-    
+
     public ProductService(ProductRepository productRepository,
                           SupplierRepository supplierRepository,
                           ProductMapper productMapper) {
@@ -27,36 +28,38 @@ public class ProductService {
         this.supplierRepository = supplierRepository;
         this.productMapper = productMapper;
     }
-    
+
     @Transactional
     public ProductResponse createProduct(ProductRequest request) {
-        ensureUpcIsUnique(request.upc());
+        if (!isUniqueUpc(request.upc())) {
+            throw new DuplicateUpcException("Product with UPC " + request.upc() + " already exists");
+        }
 
-        Product product = productMapper.toEntity(request);
+        var product = productMapper.toEntity(request);
         product.setSupplier(resolveSupplier(request.supplierId()));
 
-        Product saved = productRepository.save(product);
+        var saved = productRepository.save(product);
         return productMapper.toResponse(saved);
     }
-    
+
     @Transactional(readOnly = true)
     public ProductResponse getProductById(Long id) {
-        Product product = findProductByIdOrThrow(id);
+        var product = findProductByIdOrThrow(id);
         return productMapper.toResponse(product);
     }
-    
-    @Transactional
-    public ProductResponse updateProduct(Long id, ProductRequest request) {
-        Product product = findProductByIdOrThrow(id);
 
-        if (!product.getUpc().equals(request.upc()) && productRepository.existsByUpc(request.upc())) {
+    @Transactional
+    public ProductResponse updateProduct(@NotNull Long id, @NotNull ProductRequest request) {
+        var product = findProductByIdOrThrow(id);
+
+        if (!product.getUpc().equals(request.upc()) && !isUniqueUpc(request.upc())) {
             throw new DuplicateUpcException("Product with UPC " + request.upc() + " already exists");
         }
 
         productMapper.updateEntity(request, product);
         product.setSupplier(resolveSupplier(request.supplierId()));
 
-        Product saved = productRepository.save(product);
+        var saved = productRepository.save(product);
         return productMapper.toResponse(saved);
     }
 
@@ -64,10 +67,8 @@ public class ProductService {
         return findProductByIdOrThrow(id);
     }
 
-    private void ensureUpcIsUnique(String upc) {
-        if (productRepository.existsByUpc(upc)) {
-            throw new DuplicateUpcException("Product with UPC " + upc + " already exists");
-        }
+    private boolean isUniqueUpc(String upc) {
+        return !productRepository.existsByUpc(upc);
     }
 
     private Product findProductByIdOrThrow(Long id) {

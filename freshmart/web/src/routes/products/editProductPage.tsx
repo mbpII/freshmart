@@ -7,18 +7,9 @@ import { RadioGroupField } from '@/components/form/RadioGroupField';
 import { SelectField } from '@/components/form/SelectField';
 import { Button } from '@/components/ui/button';
 import productFormConfig from '@/data/product-form.json';
-import {
-  useCreateProduct,
-  useMarkOnSale,
-  useProduct,
-  useUpdateProduct,
-} from '@/hooks/useProducts';
-import {
-  buildCreateProductInput,
-  buildProductFormDefaults,
-  buildUpdateProductInput,
-  computeSaleModifier,
-} from '@/lib/productForm';
+import { useProduct } from '@/hooks/useProducts';
+import { useProductEditor } from '@/hooks/useProductEditor';
+import { buildProductFormDefaults } from '@/lib/productForm';
 import { productFormSchema } from '@/lib/validation';
 import { useDevModeStore } from '@/stores/dev-mode';
 import type {
@@ -61,9 +52,12 @@ function ProductEditorForm({
   isManager,
 }: ProductEditorFormProps) {
   const navigate = useNavigate();
-  const createProduct = useCreateProduct();
-  const markOnSale = useMarkOnSale();
-  const updateProduct = useUpdateProduct();
+  const { submit, isPending, error } = useProductEditor({
+    productId,
+    isEditMode,
+    isManager,
+    navigate,
+  });
 
   const {
     register,
@@ -80,46 +74,8 @@ function ProductEditorForm({
   const isOnSale = watch('isOnSale');
   const saleMode = watch('saleMode');
 
-  const onSubmit = async (values: ProductFormData) => {
-    if (isEditMode) {
-      updateProduct.mutate(
-        { id: productId, data: buildUpdateProductInput(values) },
-        {
-          onSuccess: async () => {
-            if (isManager && values.isOnSale) {
-              const modifier = computeSaleModifier(values);
-              if (modifier) {
-                await markOnSale.mutateAsync({
-                  productId,
-                  salesPriceModifier: modifier,
-                });
-              }
-            }
-            navigate(`/products/${productId}`);
-          },
-        },
-      );
-      return;
-    }
-
-    createProduct.mutate(buildCreateProductInput(values), {
-      onSuccess: async (created) => {
-        if (isManager && values.isOnSale) {
-          const modifier = computeSaleModifier(values);
-          if (modifier) {
-            await markOnSale.mutateAsync({
-              productId: created.productId,
-              salesPriceModifier: modifier,
-            });
-          }
-        }
-        navigate('/');
-      },
-    });
-  };
-
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit(submit)} className="space-y-6">
       <FormSection title="Catalog Details">
         <InputField
           label="Product Name *"
@@ -140,7 +96,7 @@ function ProductEditorForm({
           <InputField
             label="UPC *"
             placeholder="Enter UPC code"
-            maxLength={13}
+            maxLength={12}
             registration={register('upc')}
             error={errors.upc?.message}
           />
@@ -297,27 +253,20 @@ function ProductEditorForm({
         )}
       </FormSection>
 
-      {(createProduct.isError || updateProduct.isError) && (
+      {error && (
         <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-destructive">
           <p className="text-sm">
-            Error saving product:{' '}
-            {((isEditMode ? updateProduct.error : createProduct.error) as Error)?.message ||
-              'Something went wrong'}
+            Error saving product: {error.message || 'Something went wrong'}
           </p>
         </div>
       )}
 
       <div className="flex gap-3 pt-4">
-        <Button
-          type="submit"
-          disabled={isSubmitting || createProduct.isPending || updateProduct.isPending}
-        >
-          {isEditMode
-            ? updateProduct.isPending
-              ? 'Saving...'
-              : 'Save Changes'
-            : createProduct.isPending
-              ? 'Creating...'
+        <Button type="submit" disabled={isSubmitting || isPending}>
+          {isPending
+            ? 'Saving...'
+            : isEditMode
+              ? 'Save Changes'
               : 'Add to Inventory'}
         </Button>
         <Button variant="outline" render={<Link to="/" />}>

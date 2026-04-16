@@ -137,46 +137,44 @@ export default function ProductPage() {
     }
   };
 
-  const convertToModifier = (): number | null => {
+  const handleApplySale = () => {
+    setSaleError("");
+
     if (saleMode === "percent") {
       const pct = parseFloat(salePercentInput);
       if (!Number.isFinite(pct) || pct <= 0 || pct >= 100) {
         setSaleError("Percent off must be between 0 and 100.");
-        return null;
+        return;
       }
-      return pct;
-    }
-    const sp = parseFloat(salePriceInput);
-    if (!Number.isFinite(sp) || sp <= 0) {
-      setSaleError("Sale price must be greater than 0.");
-      return null;
-    }
-    if (sp >= product.retailPrice) {
-      setSaleError("Sale price must be lower than retail price.");
-      return null;
-    }
-    const mod = ((product.retailPrice - sp) / product.retailPrice) * 100;
-    if (!Number.isFinite(mod) || mod <= 0 || mod >= 100) {
-      setSaleError("Invalid discount derived from sale price.");
-      return null;
-    }
-    return Number(mod.toFixed(2));
-  };
-
-  const handleApplySale = () => {
-    setSaleError("");
-    const salesPriceModifier = convertToModifier();
-    if (salesPriceModifier == null) return;
-    markOnSale.mutate(
-      { productId, salesPriceModifier },
-      {
-        onSuccess: () => {
-          setSalePriceInput("");
-          setSalePercentInput("");
-          toast.success("Sale applied");
+      markOnSale.mutate(
+        { productId, mode: "percent", value: pct },
+        {
+          onSuccess: () => {
+            setSalePercentInput("");
+            toast.success("Sale applied");
+          },
         },
-      },
-    );
+      );
+    } else {
+      const sp = parseFloat(salePriceInput);
+      if (!Number.isFinite(sp) || sp <= 0) {
+        setSaleError("Sale price must be greater than 0.");
+        return;
+      }
+      if (sp >= product.retailPrice) {
+        setSaleError("Sale price must be lower than retail price.");
+        return;
+      }
+      markOnSale.mutate(
+        { productId, mode: "flat", value: sp },
+        {
+          onSuccess: () => {
+            setSalePriceInput("");
+            toast.success("Sale applied");
+          },
+        },
+      );
+    }
   };
 
   const handleRemoveSale = () => {

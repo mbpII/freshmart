@@ -37,16 +37,20 @@ public class InventoryService {
     private final InventoryMapper inventoryMapper;
     private final ProductInventoryMapper productInventoryMapper;
     private final PricingService pricingService;
+    private final PercentOffStrategy percentOffStrategy;
+    private final FlatPriceStrategy flatPriceStrategy;
     private final ApplicationEventPublisher eventPublisher;
-    
+
     public InventoryService(InventoryRepository inventoryRepository,
-                   StoreRepository storeRepository,
-                   ProductService productService,
-                    CurrentUserService currentUserService,
-                    InventoryMapper inventoryMapper,
-                    ProductInventoryMapper productInventoryMapper,
-                    PricingService pricingService,
-                    ApplicationEventPublisher eventPublisher) {
+                            StoreRepository storeRepository,
+                            ProductService productService,
+                            CurrentUserService currentUserService,
+                            InventoryMapper inventoryMapper,
+                            ProductInventoryMapper productInventoryMapper,
+                            PricingService pricingService,
+                            PercentOffStrategy percentOffStrategy,
+                            FlatPriceStrategy flatPriceStrategy,
+                            ApplicationEventPublisher eventPublisher) {
         this.inventoryRepository = inventoryRepository;
         this.storeRepository = storeRepository;
         this.productService = productService;
@@ -54,6 +58,8 @@ public class InventoryService {
         this.inventoryMapper = inventoryMapper;
         this.productInventoryMapper = productInventoryMapper;
         this.pricingService = pricingService;
+        this.percentOffStrategy = percentOffStrategy;
+        this.flatPriceStrategy = flatPriceStrategy;
         this.eventPublisher = eventPublisher;
     }
     
@@ -159,17 +165,32 @@ public class InventoryService {
     }
 
     @Transactional
-    public ProductInventoryResponse markProductOnSale(Long productId,
-                                                      Long storeId,
-                                                      BigDecimal salesPriceModifier) {
+    public ProductInventoryResponse markProductOnSaleByPercent(Long productId,
+                                                               Long storeId,
+                                                               BigDecimal percentOff) {
+        return applyModifier(productId, storeId, percentOff, percentOffStrategy);
+    }
+
+    @Transactional
+    public ProductInventoryResponse markProductOnSaleByFlat(Long productId,
+                                                            Long storeId,
+                                                            BigDecimal flatPrice) {
         Inventory inventory = findActiveInventoryOrThrow(productId, storeId);
-
-        BigDecimal percentOff = pricingService.normalizeSalesPriceModifier(salesPriceModifier);
+        BigDecimal retailPrice = inventory.getProduct().getRetailPrice();
+        BigDecimal modifier = pricingService.computeModifier(flatPriceStrategy, retailPrice, flatPrice);
         inventory.setIsOnSale(true);
-        inventory.setSalesPriceModifier(percentOff);
+        inventory.setSalesPriceModifier(modifier);
+        return toProductInventoryResponse(inventoryRepository.save(inventory));
+    }
 
-        Inventory saved = inventoryRepository.save(inventory);
-        return toProductInventoryResponse(saved);
+    private ProductInventoryResponse applyModifier(Long productId, Long storeId,
+                                                    BigDecimal inputValue,
+                                                    SalePricingStrategy strategy) {
+        Inventory inventory = findActiveInventoryOrThrow(productId, storeId);
+        BigDecimal modifier = pricingService.computeModifier(strategy, inventory.getProduct().getRetailPrice(), inputValue);
+        inventory.setIsOnSale(true);
+        inventory.setSalesPriceModifier(modifier);
+        return toProductInventoryResponse(inventoryRepository.save(inventory));
     }
 
     @Transactional

@@ -12,16 +12,11 @@ public class PricingService {
     private static final int PERCENTAGE_SCALE = 6;
     private static final int CURRENCY_SCALE = 2;
 
-    public BigDecimal normalizeSalesPriceModifier(BigDecimal salesPriceModifier) {
-        if (salesPriceModifier == null) {
-            throw new IllegalArgumentException("Sales price modifier is required");
-        }
-
-        if (salesPriceModifier.compareTo(BigDecimal.ZERO) <= 0 || salesPriceModifier.compareTo(HUNDRED) >= 0) {
-            throw new IllegalArgumentException("Sales price modifier must be greater than 0 and less than 100");
-        }
-
-        return salesPriceModifier.setScale(CURRENCY_SCALE, RoundingMode.HALF_UP);
+    /**
+     * Computes the stored percent-off modifier using the provided strategy.
+     */
+    public BigDecimal computeModifier(SalePricingStrategy strategy, BigDecimal retailPrice, BigDecimal inputValue) {
+        return strategy.computeModifier(retailPrice, inputValue);
     }
 
     public BigDecimal calculateSalePrice(BigDecimal retailPrice, BigDecimal salesPriceModifier, Boolean isOnSale) {
