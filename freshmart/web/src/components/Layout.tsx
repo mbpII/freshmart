@@ -2,10 +2,11 @@ import { Link, Outlet } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useDevMode } from '@/lib/dev-mode';
+import { useDevModeStore } from '@/stores/dev-mode';
 
 export default function Layout() {
-  const { isManager, setIsManager } = useDevMode();
+  const isManager = useDevModeStore((state) => state.isManager);
+  const setIsManager = useDevModeStore((state) => state.setIsManager);
 
   return (
     <div className="min-h-screen bg-background">

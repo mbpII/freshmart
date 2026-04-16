@@ -10,6 +10,11 @@ import { useProducts } from '@/hooks/useProducts';
 import { INVENTORY_PAGE_SIZE } from '@/lib/constants';
 import { formatCurrency } from '@/lib/format';
 import { getPaginationItems } from '@/lib/pagination';
+import {
+  getProductAlertBadgeClass,
+  getProductAlertLabel,
+  getProductAlertState,
+} from '@/lib/product-alert';
 import type { Product } from '@/types/product';
 import {
   Table,
@@ -35,32 +40,10 @@ import type { ProductFormConfig } from '@/types/product';
 
 const categories = (productFormConfig as ProductFormConfig).categories;
 
-function getAlertState(product: Product): 'low-stock' | 'discounted' | 'normal' {
-  const isLowStock =
-    product.reorderThreshold !== undefined &&
-    product.quantityOnHand <= product.reorderThreshold;
-
-  if (isLowStock) {
-    return 'low-stock';
-  }
-  if (product.isOnSale) {
-    return 'discounted';
-  }
-  return 'normal';
-}
-
 function getStatusBadge(product: Product) {
-  const state = getAlertState(product);
-
-  if (state === 'low-stock') {
-    return <Badge className="rounded-none border-red-300 bg-red-100 text-red-800">LOW STOCK</Badge>;
-  }
-
-  if (state === 'discounted') {
-    return <Badge className="rounded-none border-orange-300 bg-orange-100 text-orange-800">DISCOUNTED</Badge>;
-  }
-
-  return <Badge className="rounded-none border-emerald-300 bg-emerald-100 text-emerald-800">NORMAL</Badge>;
+  const state = getProductAlertState(product);
+  const label = getProductAlertLabel(state);
+  return <Badge className={getProductAlertBadgeClass(state)}>{label}</Badge>;
 }
 
 const columns: ColumnDef<Product>[] = [
@@ -82,7 +65,7 @@ const columns: ColumnDef<Product>[] = [
     header: 'Qty',
     cell: ({ row }) => {
       const item = row.original;
-      const isLow = getAlertState(item) === 'low-stock';
+      const isLow = getProductAlertState(item) === 'low-stock';
       return <span className={isLow ? 'font-semibold text-destructive' : ''}>{item.quantityOnHand}</span>;
     },
   },

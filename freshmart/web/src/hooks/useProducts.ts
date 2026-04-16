@@ -9,6 +9,10 @@ type StockMutationInput = {
   notes: string;
 };
 
+type UseProductOptions = {
+  enabled?: boolean;
+};
+
 function invalidateProductQueries(qc: ReturnType<typeof useQueryClient>, id: number) {
   qc.invalidateQueries({ queryKey: ['products'] });
   qc.invalidateQueries({ queryKey: ['product', id] });
@@ -22,11 +26,13 @@ export function useProducts() {
   });
 }
 
-export function useProduct(id: number) {
+export function useProduct(id: number, options?: UseProductOptions) {
+  const enabled = !!id && (options?.enabled ?? true);
+
   return useQuery({
     queryKey: ['product', id],
     queryFn: () => productApi.getById(id, DEFAULT_STORE_ID),
-    enabled: !!id,
+    enabled,
   });
 }
 
@@ -60,12 +66,20 @@ export function useArchiveProduct() {
   });
 }
 
+type MarkOnSaleInput = {
+  productId: number;
+  mode: 'percent' | 'flat';
+  value: number;
+};
+
 export function useMarkOnSale() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ productId, salesPriceModifier }: { productId: number; salesPriceModifier: number }) =>
-      productApi.markOnSale(productId, salesPriceModifier),
+    mutationFn: ({ productId, mode, value }: MarkOnSaleInput) =>
+      mode === 'percent'
+        ? productApi.markOnSaleByPercent(productId, value)
+        : productApi.markOnSaleByFlat(productId, value),
     onSuccess: (_, { productId }) => invalidateProductQueries(qc, productId),
   });
 }

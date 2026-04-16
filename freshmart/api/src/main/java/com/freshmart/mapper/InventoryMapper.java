@@ -7,9 +7,9 @@ import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface InventoryMapper {
-    
+
     @Mapping(source = "product.productId", target = "productId")
     @Mapping(source = "store.storeId", target = "storeId")
-    @Mapping(target = "isActive", constant = "true")
+    @Mapping(source = "active", target = "isActive")
     InventoryResponse toResponse(Inventory inventory);
 }

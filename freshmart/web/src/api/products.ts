@@ -1,169 +1,193 @@
+import { z } from 'zod';
 import type {
   CreateProductInput,
   Product,
   ProductCatalog,
   UpdateProductInput,
-} from "../types/product";
-import { DEFAULT_STORE_ID } from "../lib/constants";
+} from '../types/product';
+import { DEFAULT_STORE_ID } from '../lib/constants';
 
-const API_BASE = "/api";
+const API_BASE = '/api';
 
-async function handleResponse<T>(response: Response): Promise<T> {
+const nullToUndefined = <T>(value: T | null | undefined): T | undefined =>
+  value ?? undefined;
+
+const optionalStringSchema = z
+  .string()
+  .optional()
+  .nullable()
+  .transform(nullToUndefined);
+
+const optionalNumberSchema = z
+  .coerce
+  .number()
+  .optional()
+  .nullable()
+  .transform(nullToUndefined);
+
+const productSchema = z.object({
+  productId: z.coerce.number(),
+  storeId: z.coerce.number(),
+  productName: z.string(),
+  category: z.string(),
+  upc: z.string(),
+  supplierName: optionalStringSchema,
+  unitCost: optionalNumberSchema,
+  retailPrice: z.coerce.number(),
+  isOnSale: z.boolean(),
+  salesPriceModifier: optionalNumberSchema,
+  salePrice: optionalNumberSchema,
+  quantityOnHand: z.coerce.number(),
+  lastUpdated: z.string(),
+  isFood: z.boolean(),
+  isActive: z.boolean(),
+  expirationDate: optionalStringSchema,
+  reorderThreshold: optionalNumberSchema,
+  reorderQuantity: optionalNumberSchema,
+  inventoryId: optionalNumberSchema,
+});
+
+const productCatalogSchema = z.object({
+  productId: z.coerce.number(),
+  productName: z.string(),
+  category: z.string(),
+  upc: z.string(),
+  supplierName: optionalStringSchema,
+  unitCost: optionalNumberSchema,
+  retailPrice: z.coerce.number(),
+  isOnSale: z.boolean(),
+  salesPriceModifier: optionalNumberSchema,
+  salePrice: optionalNumberSchema,
+  isFood: z.boolean(),
+  reorderThreshold: optionalNumberSchema,
+  reorderQuantity: optionalNumberSchema,
+  expirationDate: optionalStringSchema,
+  isActive: z.boolean(),
+});
+
+function parseApiError(rawError: string, status: number): Error {
+  let parsedMessage = '';
+
+  try {
+    const parsed = JSON.parse(rawError) as { message?: string };
+    parsedMessage = parsed.message ?? '';
+  } catch {
+    parsedMessage = rawError;
+  }
+
+  if (parsedMessage.includes('Insufficient inventory')) {
+    return new Error('Cannot complete sell, insufficient inventory');
+  }
+
+  return new Error(parsedMessage || `HTTP ${status}`);
+}
+
+async function requestJson(path: string, init?: RequestInit): Promise<unknown> {
+  const response = await fetch(`${API_BASE}${path}`, init);
+
   if (!response.ok) {
     const rawError = await response.text();
-
-    let parsedMessage = "";
-    try {
-      const parsed = JSON.parse(rawError) as { message?: string };
-      parsedMessage = parsed.message ?? "";
-      console.error("API validation error:", parsed);
-    } catch {
-      parsedMessage = rawError;
-      console.error("API error response:", rawError);
-    }
-
-    if (parsedMessage.includes("Insufficient inventory")) {
-      throw new Error("Cannot complete sell, insufficient inventory");
-    }
-
-    throw new Error(parsedMessage || `HTTP ${response.status}`);
+    throw parseApiError(rawError, response.status);
   }
+
   return response.json();
 }
 
-function mapProductFromApi(data: Record<string, unknown>): Product {
-  return {
-    productId: Number(data.productId),
-    storeId: Number(data.storeId),
-    productName: data.productName as string,
-    category: data.category as string,
-    upc: data.upc as string,
-    supplierName: data.supplierName as string | undefined,
-    unitCost: data.unitCost != null ? Number(data.unitCost) : undefined,
-    retailPrice: Number(data.retailPrice),
-    isOnSale: data.isOnSale as boolean,
-    salesPriceModifier:
-      data.salesPriceModifier != null ? Number(data.salesPriceModifier) : undefined,
-    salePrice: data.salePrice != null ? Number(data.salePrice) : undefined,
-    quantityOnHand: Number(data.quantityOnHand),
-    lastUpdated: data.lastUpdated as string,
-    isFood: data.isFood as boolean,
-    isActive: data.isActive as boolean,
-    expirationDate: data.expirationDate as string | undefined,
-    reorderThreshold:
-      data.reorderThreshold != null ? Number(data.reorderThreshold) : undefined,
-    reorderQuantity:
-      data.reorderQuantity != null ? Number(data.reorderQuantity) : undefined,
-    inventoryId: data.inventoryId != null ? Number(data.inventoryId) : undefined,
-  };
+async function requestNoContent(path: string, init?: RequestInit): Promise<void> {
+  const response = await fetch(`${API_BASE}${path}`, init);
+
+  if (!response.ok) {
+    const rawError = await response.text();
+    throw parseApiError(rawError, response.status);
+  }
 }
 
-function mapProductCatalogFromApi(
-  data: Record<string, unknown>,
-): ProductCatalog {
+function parseWithSchema<T>(schema: z.ZodType<T>, data: unknown, context: string): T {
+  const parsed = schema.safeParse(data);
+
+  if (!parsed.success) {
+    throw new Error(`Invalid ${context} response: ${parsed.error.issues[0]?.message ?? 'unknown schema error'}`);
+  }
+
+  return parsed.data;
+}
+
+function withStoreId(path: string, storeId: number): string {
+  const separator = path.includes('?') ? '&' : '?';
+  return `${path}${separator}storeId=${storeId}`;
+}
+
+function jsonRequest(method: 'POST' | 'PUT', body: unknown): RequestInit {
   return {
-    productId: Number(data.productId),
-    productName: data.productName as string,
-    category: data.category as string,
-    upc: data.upc as string,
-    supplierName: data.supplierName as string | undefined,
-    unitCost: data.unitCost != null ? Number(data.unitCost) : undefined,
-    retailPrice: Number(data.retailPrice),
-    isOnSale: data.isOnSale as boolean,
-    salesPriceModifier:
-      data.salesPriceModifier != null ? Number(data.salesPriceModifier) : undefined,
-    salePrice: data.salePrice != null ? Number(data.salePrice) : undefined,
-    isFood: data.isFood as boolean,
-    reorderThreshold:
-      data.reorderThreshold != null ? Number(data.reorderThreshold) : undefined,
-    reorderQuantity:
-      data.reorderQuantity != null ? Number(data.reorderQuantity) : undefined,
-    expirationDate: data.expirationDate as string | undefined,
-    isActive: data.isActive as boolean,
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
   };
 }
 
 export const productApi = {
   getAll: async (storeId: number = DEFAULT_STORE_ID): Promise<Product[]> => {
-    const res = await fetch(`${API_BASE}/products?storeId=${storeId}`);
-    const data = await handleResponse<Record<string, unknown>[]>(res);
-    return data.map(mapProductFromApi);
+    const data = await requestJson(withStoreId('/products', storeId));
+    return parseWithSchema(z.array(productSchema), data, 'products list');
   },
 
   getById: async (
     id: number,
     storeId: number = DEFAULT_STORE_ID,
   ): Promise<Product> => {
-    const res = await fetch(`${API_BASE}/stores/${storeId}/inventory/${id}`);
-    const data = await handleResponse<Record<string, unknown>>(res);
-    return mapProductFromApi(data);
+    const data = await requestJson(`/stores/${storeId}/inventory/${id}`);
+    return parseWithSchema(productSchema, data, 'product detail');
   },
 
   create: async (data: CreateProductInput): Promise<Product> => {
-    const res = await fetch(`${API_BASE}/products`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-    const responseData = await handleResponse<Record<string, unknown>>(res);
-    return mapProductFromApi(responseData);
+    const responseData = await requestJson('/products', jsonRequest('POST', data));
+    return parseWithSchema(productSchema, responseData, 'create product');
   },
 
   update: async (
     id: number,
     data: UpdateProductInput,
   ): Promise<ProductCatalog> => {
-    const res = await fetch(`${API_BASE}/products/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-    const responseData = await handleResponse<Record<string, unknown>>(res);
-    return mapProductCatalogFromApi(responseData);
+    const responseData = await requestJson(`/products/${id}`, jsonRequest('PUT', data));
+    return parseWithSchema(productCatalogSchema, responseData, 'update product');
   },
 
   archive: async (id: number): Promise<void> => {
-    const res = await fetch(`${API_BASE}/products/${id}`, {
-      method: "DELETE",
-    });
-    if (!res.ok) {
-      const error = await res.text();
-      throw new Error(error || `HTTP ${res.status}`);
-    }
+    await requestNoContent(`/products/${id}`, { method: 'DELETE' });
   },
 
-  markOnSale: async (
+  markOnSaleByPercent: async (
     id: number,
-    salesPriceModifier: number,
+    percentOff: number,
     storeId: number = DEFAULT_STORE_ID,
   ): Promise<Product> => {
-    const params = new URLSearchParams({
-      storeId: String(storeId),
-      salesPriceModifier: String(salesPriceModifier),
-    });
-    const res = await fetch(
-      `${API_BASE}/products/${id}/sale?${params.toString()}`,
-      {
-        method: "POST",
-      },
+    const data = await requestJson(
+      `/products/${id}/sale/percent?storeId=${storeId}&value=${percentOff}`,
+      { method: 'POST' },
     );
-    const responseData = await handleResponse<Record<string, unknown>>(res);
-    return mapProductFromApi(responseData);
+    return parseWithSchema(productSchema, data, 'mark on sale by percent');
+  },
+
+  markOnSaleByFlat: async (
+    id: number,
+    flatPrice: number,
+    storeId: number = DEFAULT_STORE_ID,
+  ): Promise<Product> => {
+    const data = await requestJson(
+      `/products/${id}/sale/flat?storeId=${storeId}&value=${flatPrice}`,
+      { method: 'POST' },
+    );
+    return parseWithSchema(productSchema, data, 'mark on sale by flat price');
   },
 
   removeSale: async (
     id: number,
     storeId: number = DEFAULT_STORE_ID,
   ): Promise<Product> => {
-    const params = new URLSearchParams({ storeId: String(storeId) });
-    const res = await fetch(
-      `${API_BASE}/products/${id}/sale?${params.toString()}`,
-      {
-        method: "DELETE",
-      },
-    );
-    const responseData = await handleResponse<Record<string, unknown>>(res);
-    return mapProductFromApi(responseData);
+    const data = await requestJson(withStoreId(`/products/${id}/sale`, storeId), {
+      method: 'DELETE',
+    });
+    return parseWithSchema(productSchema, data, 'remove sale');
   },
 
   receiveStock: async (
@@ -172,16 +196,11 @@ export const productApi = {
     notes: string,
     storeId: number = DEFAULT_STORE_ID,
   ): Promise<Product> => {
-    const res = await fetch(
-      `${API_BASE}/stores/${storeId}/inventory/${id}/receive`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ quantityChange, notes }),
-      },
+    const data = await requestJson(
+      `/stores/${storeId}/inventory/${id}/receive`,
+      jsonRequest('POST', { quantityChange, notes }),
     );
-    const responseData = await handleResponse<Record<string, unknown>>(res);
-    return mapProductFromApi(responseData);
+    return parseWithSchema(productSchema, data, 'receive stock');
   },
 
   adjustStock: async (
@@ -190,15 +209,10 @@ export const productApi = {
     notes: string,
     storeId: number = DEFAULT_STORE_ID,
   ): Promise<Product> => {
-    const res = await fetch(
-      `${API_BASE}/stores/${storeId}/inventory/${id}/adjust`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ quantityChange, notes }),
-      },
+    const data = await requestJson(
+      `/stores/${storeId}/inventory/${id}/adjust`,
+      jsonRequest('POST', { quantityChange, notes }),
     );
-    const responseData = await handleResponse<Record<string, unknown>>(res);
-    return mapProductFromApi(responseData);
+    return parseWithSchema(productSchema, data, 'adjust stock');
   },
 };

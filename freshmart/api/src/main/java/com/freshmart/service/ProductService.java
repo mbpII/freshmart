@@ -1,90 +1,99 @@
 package com.freshmart.service;
 
+import com.freshmart.dto.CreateProductRequest;
+import com.freshmart.dto.InventoryRequest;
+import com.freshmart.dto.ProductInventoryResponse;
 import com.freshmart.dto.ProductRequest;
 import com.freshmart.dto.ProductResponse;
 import com.freshmart.exception.DuplicateUpcException;
 import com.freshmart.exception.ProductNotFoundException;
+import com.freshmart.exception.SupplierNotFoundException;
 import com.freshmart.mapper.ProductMapper;
 import com.freshmart.model.Product;
 import com.freshmart.model.Supplier;
 import com.freshmart.repository.ProductRepository;
 import com.freshmart.repository.SupplierRepository;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.stream.Collectors;
+import org.springframework.validation.annotation.Validated;
 
 @Service
+@Validated
 public class ProductService {
-    
+
     private final ProductRepository productRepository;
     private final SupplierRepository supplierRepository;
     private final ProductMapper productMapper;
-    
-    public ProductService(ProductRepository productRepository, 
+    private final InventoryService inventoryService;
+
+    public ProductService(ProductRepository productRepository,
                           SupplierRepository supplierRepository,
-                          ProductMapper productMapper) {
+                          ProductMapper productMapper,
+                          InventoryService inventoryService) {
         this.productRepository = productRepository;
         this.supplierRepository = supplierRepository;
         this.productMapper = productMapper;
+        this.inventoryService = inventoryService;
     }
-    
+
+    @Transactional
+    public ProductInventoryResponse createProductWithInitialInventory(CreateProductRequest request, Long storeId) {
+        var productResponse = createProduct(productMapper.toProductRequest(request));
+        var initialQty = request.initialQuantity() != null ? request.initialQuantity() : 0;
+
+        inventoryService.addToInventory(storeId, new InventoryRequest(productResponse.productId(), initialQty));
+        return inventoryService.getProductInventory(productResponse.productId(), storeId);
+    }
+
     @Transactional
     public ProductResponse createProduct(ProductRequest request) {
-        if (productRepository.existsByUpc(request.upc())) {
+        if (!isUniqueUpc(request.upc())) {
             throw new DuplicateUpcException("Product with UPC " + request.upc() + " already exists");
         }
-        
-        Product product = productMapper.toEntity(request);
-        
-        if (request.supplierId() != null) {
-            Supplier supplier = supplierRepository.findById(request.supplierId())
-                .orElse(null);
-            product.setSupplier(supplier);
-        }
-        
-        Product saved = productRepository.save(product);
+
+        var product = productMapper.toEntity(request);
+        product.setSupplier(resolveSupplier(request.supplierId()));
+
+        var saved = productRepository.save(product);
         return productMapper.toResponse(saved);
     }
-    
+
     @Transactional(readOnly = true)
     public ProductResponse getProductById(Long id) {
-        Product product = productRepository.findById(id)
-            .orElseThrow(() -> new ProductNotFoundException("Product not found with id: " + id));
+        var product = findProductByIdOrThrow(id);
         return productMapper.toResponse(product);
     }
-    
-    @Transactional(readOnly = true)
-    public List<ProductResponse> getAllProducts() {
-        return productRepository.findByIsActiveTrue().stream()
-            .map(productMapper::toResponse)
-            .collect(Collectors.toList());
-    }
-    
+
     @Transactional
-    public ProductResponse updateProduct(Long id, ProductRequest request) {
-        Product product = productRepository.findById(id)
-            .orElseThrow(() -> new ProductNotFoundException("Product not found with id: " + id));
-        
-        if (!product.getUpc().equals(request.upc()) && productRepository.existsByUpc(request.upc())) {
+    public ProductResponse updateProduct(@NotNull Long id, @NotNull ProductRequest request) {
+        var product = findProductByIdOrThrow(id);
+
+        if (!product.getUpc().equals(request.upc()) && !isUniqueUpc(request.upc())) {
             throw new DuplicateUpcException("Product with UPC " + request.upc() + " already exists");
         }
-        
+
         productMapper.updateEntity(request, product);
-        
-        if (request.supplierId() != null) {
-            Supplier supplier = supplierRepository.findById(request.supplierId())
-                .orElse(null);
-            product.setSupplier(supplier);
-        }
-        
-        Product saved = productRepository.save(product);
+        product.setSupplier(resolveSupplier(request.supplierId()));
+
+        var saved = productRepository.save(product);
         return productMapper.toResponse(saved);
     }
-    
-    Product getProductEntity(Long id) {
+
+    private boolean isUniqueUpc(String upc) {
+        return !productRepository.existsByUpc(upc);
+    }
+
+    private Product findProductByIdOrThrow(Long id) {
         return productRepository.findById(id)
             .orElseThrow(() -> new ProductNotFoundException("Product not found with id: " + id));
+    }
+
+    private Supplier resolveSupplier(Long supplierId) {
+        if (supplierId == null) {
+            return null;
+        }
+        return supplierRepository.findById(supplierId)
+            .orElseThrow(() -> new SupplierNotFoundException("Supplier not found with id: " + supplierId));
     }
 }
