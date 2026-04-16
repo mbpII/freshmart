@@ -27,8 +27,9 @@ public class Product {
     private String category;
     
     @NotBlank(message = "UPC is required")
-    @Size(max = 50, message = "UPC must not exceed 50 characters")
-    @Column(name = "upc", nullable = false, unique = true, length = 50)
+    @Size(min = 12, max = 12, message = "UPC must be exactly 12 characters")
+    @Pattern(regexp = "\\d{12}", message = "UPC must be exactly 12 digits")
+    @Column(name = "upc", nullable = false, unique = true, length = 12)
     private String upc;
     
     @ManyToOne(fetch = FetchType.LAZY)

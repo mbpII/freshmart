@@ -107,7 +107,7 @@ function ProductEditorForm({
           <InputField
             label="UPC *"
             placeholder="Enter UPC code"
-            maxLength={50}
+            maxLength={12}
             registration={register('upc')}
             error={errors.upc?.message}
           />
