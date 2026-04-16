@@ -29,8 +29,5 @@ logs/
 .env.local
 .env.*.local
 
-# Git
-.git
-
 # MapStruct generated implementations
 **/mapper/*Impl.java

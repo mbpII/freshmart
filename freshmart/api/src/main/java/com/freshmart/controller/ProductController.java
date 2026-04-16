@@ -1,17 +1,17 @@
 package com.freshmart.controller;
 
 import com.freshmart.dto.CreateProductRequest;
-import com.freshmart.dto.InventoryRequest;
 import com.freshmart.dto.ProductInventoryResponse;
 import com.freshmart.dto.ProductRequest;
 import com.freshmart.dto.ProductResponse;
-import com.freshmart.mapper.ProductMapper;
 import com.freshmart.service.InventoryService;
 import com.freshmart.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
 import java.util.List;
@@ -38,29 +38,20 @@ public class ProductController {
 
     private final ProductService productService;
     private final InventoryService inventoryService;
-    private final ProductMapper productMapper;
     
-    public ProductController(ProductService productService, InventoryService inventoryService, ProductMapper productMapper) {
+    public ProductController(ProductService productService, InventoryService inventoryService) {
         this.productService = productService;
         this.inventoryService = inventoryService;
-        this.productMapper = productMapper;
     }
     
     @PostMapping
     @Operation(summary = "Create a new product with initial inventory")
     public ResponseEntity<ProductInventoryResponse> createProduct(
             @Valid @RequestBody CreateProductRequest request) {
-        var productResponse = productService.createProduct(productMapper.toProductRequest(request));
-
         // TODO: replace with CurrentUserService when auth is implemented
         var storeId = resolveStoreId(request.storeId());
-        var initialQty = request.initialQuantity() != null ? request.initialQuantity() : 0;
-
-        var inventoryRequest = new InventoryRequest(productResponse.productId(), initialQty);
-        inventoryService.addToInventory(storeId, inventoryRequest);
-
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(inventoryService.getProductInventory(productResponse.productId(), storeId));
+            .body(productService.createProductWithInitialInventory(request, storeId));
     }
     
     @GetMapping("/{id}")
@@ -103,7 +94,10 @@ public class ProductController {
     public ResponseEntity<ProductInventoryResponse> markOnSaleByPercent(
             @PathVariable @Positive Long id,
             @RequestParam(name = "storeId") @Positive Long storeId,
-            @RequestParam(name = "value") BigDecimal value) {
+            @RequestParam(name = "value")
+            @DecimalMin(value = "0.01", message = "Percent off must be greater than 0")
+            @DecimalMax(value = "100", inclusive = false, message = "Percent off must be less than 100")
+            BigDecimal value) {
         return ResponseEntity.ok(inventoryService.markProductOnSaleByPercent(id, storeId, value));
     }
 
@@ -112,7 +106,9 @@ public class ProductController {
     public ResponseEntity<ProductInventoryResponse> markOnSaleByFlat(
             @PathVariable @Positive Long id,
             @RequestParam(name = "storeId") @Positive Long storeId,
-            @RequestParam(name = "value") BigDecimal value) {
+            @RequestParam(name = "value")
+            @DecimalMin(value = "0.01", message = "Sale price must be greater than 0")
+            BigDecimal value) {
         return ResponseEntity.ok(inventoryService.markProductOnSaleByFlat(id, storeId, value));
     }
     

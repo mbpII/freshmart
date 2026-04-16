@@ -50,9 +50,12 @@ export default function ProductPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const productId = Number(id);
+  const isValidProductId = Number.isFinite(productId) && productId > 0;
   const isManager = useDevModeStore((state) => state.isManager);
 
-  const { data: product, isLoading } = useProduct(productId);
+  const { data: product, isLoading } = useProduct(productId, {
+    enabled: isValidProductId,
+  });
   const archiveProduct = useArchiveProduct();
   const markOnSale = useMarkOnSale();
   const removeSale = useRemoveSale();
@@ -70,6 +73,8 @@ export default function ProductPage() {
   const [saleError, setSaleError] = useState("");
 
   const [archiveOpen, setArchiveOpen] = useState(false);
+
+  if (!isValidProductId) return <div className="p-4">Invalid product ID</div>;
 
   if (isLoading) return <div className="p-4">Loading...</div>;
   if (!product) return <div className="p-4">Product not found</div>;

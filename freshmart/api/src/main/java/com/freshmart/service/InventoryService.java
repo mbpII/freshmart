@@ -5,6 +5,7 @@ import com.freshmart.dto.InventoryResponse;
 import com.freshmart.dto.ProductInventoryResponse;
 import com.freshmart.event.InventoryAdjustedEvent;
 import com.freshmart.exception.InventoryNotFoundException;
+import com.freshmart.exception.ProductNotFoundException;
 import com.freshmart.exception.StoreNotFoundException;
 import com.freshmart.mapper.InventoryMapper;
 import com.freshmart.mapper.ProductInventoryMapper;
@@ -13,6 +14,7 @@ import com.freshmart.model.Product;
 import com.freshmart.model.Store;
 import com.freshmart.model.Transaction.TransactionType;
 import com.freshmart.repository.InventoryRepository;
+import com.freshmart.repository.ProductRepository;
 import com.freshmart.repository.StoreRepository;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -32,7 +34,7 @@ public class InventoryService {
     
     private final InventoryRepository inventoryRepository;
     private final StoreRepository storeRepository;
-    private final ProductService productService;
+    private final ProductRepository productRepository;
     private final CurrentUserService currentUserService;
     private final InventoryMapper inventoryMapper;
     private final ProductInventoryMapper productInventoryMapper;
@@ -43,7 +45,7 @@ public class InventoryService {
 
     public InventoryService(InventoryRepository inventoryRepository,
                             StoreRepository storeRepository,
-                            ProductService productService,
+                            ProductRepository productRepository,
                             CurrentUserService currentUserService,
                             InventoryMapper inventoryMapper,
                             ProductInventoryMapper productInventoryMapper,
@@ -53,7 +55,7 @@ public class InventoryService {
                             ApplicationEventPublisher eventPublisher) {
         this.inventoryRepository = inventoryRepository;
         this.storeRepository = storeRepository;
-        this.productService = productService;
+        this.productRepository = productRepository;
         this.currentUserService = currentUserService;
         this.inventoryMapper = inventoryMapper;
         this.productInventoryMapper = productInventoryMapper;
@@ -67,7 +69,7 @@ public class InventoryService {
     public InventoryResponse addToInventory(Long storeId, InventoryRequest request) {
         Store store = findStoreByIdOrThrow(storeId);
         
-        Product product = productService.getProductEntity(request.productId());
+        Product product = findProductByIdOrThrow(request.productId());
         
         if (inventoryRepository.existsByProductProductIdAndStoreStoreId(request.productId(), storeId)) {
             throw new IllegalArgumentException(PRODUCT_ALREADY_IN_STORE);
@@ -175,12 +177,7 @@ public class InventoryService {
     public ProductInventoryResponse markProductOnSaleByFlat(Long productId,
                                                             Long storeId,
                                                             BigDecimal flatPrice) {
-        Inventory inventory = findActiveInventoryOrThrow(productId, storeId);
-        BigDecimal retailPrice = inventory.getProduct().getRetailPrice();
-        BigDecimal modifier = pricingService.computeModifier(flatPriceStrategy, retailPrice, flatPrice);
-        inventory.setIsOnSale(true);
-        inventory.setSalesPriceModifier(modifier);
-        return toProductInventoryResponse(inventoryRepository.save(inventory));
+        return applyModifier(productId, storeId, flatPrice, flatPriceStrategy);
     }
 
     private ProductInventoryResponse applyModifier(Long productId, Long storeId,
@@ -213,6 +210,11 @@ public class InventoryService {
     private Store findStoreByIdOrThrow(Long storeId) {
         return storeRepository.findById(storeId)
             .orElseThrow(() -> new StoreNotFoundException("Store not found with id: " + storeId));
+    }
+
+    private Product findProductByIdOrThrow(Long productId) {
+        return productRepository.findById(productId)
+            .orElseThrow(() -> new ProductNotFoundException("Product not found with id: " + productId));
     }
 
     private void validatePositiveQuantity(Integer quantity) {

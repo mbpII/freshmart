@@ -1,5 +1,8 @@
 package com.freshmart.service;
 
+import com.freshmart.dto.CreateProductRequest;
+import com.freshmart.dto.InventoryRequest;
+import com.freshmart.dto.ProductInventoryResponse;
 import com.freshmart.dto.ProductRequest;
 import com.freshmart.dto.ProductResponse;
 import com.freshmart.exception.DuplicateUpcException;
@@ -13,20 +16,34 @@ import com.freshmart.repository.SupplierRepository;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 
 @Service
+@Validated
 public class ProductService {
 
     private final ProductRepository productRepository;
     private final SupplierRepository supplierRepository;
     private final ProductMapper productMapper;
+    private final InventoryService inventoryService;
 
     public ProductService(ProductRepository productRepository,
                           SupplierRepository supplierRepository,
-                          ProductMapper productMapper) {
+                          ProductMapper productMapper,
+                          InventoryService inventoryService) {
         this.productRepository = productRepository;
         this.supplierRepository = supplierRepository;
         this.productMapper = productMapper;
+        this.inventoryService = inventoryService;
+    }
+
+    @Transactional
+    public ProductInventoryResponse createProductWithInitialInventory(CreateProductRequest request, Long storeId) {
+        var productResponse = createProduct(productMapper.toProductRequest(request));
+        var initialQty = request.initialQuantity() != null ? request.initialQuantity() : 0;
+
+        inventoryService.addToInventory(storeId, new InventoryRequest(productResponse.productId(), initialQty));
+        return inventoryService.getProductInventory(productResponse.productId(), storeId);
     }
 
     @Transactional
@@ -61,10 +78,6 @@ public class ProductService {
 
         var saved = productRepository.save(product);
         return productMapper.toResponse(saved);
-    }
-
-    Product getProductEntity(Long id) {
-        return findProductByIdOrThrow(id);
     }
 
     private boolean isUniqueUpc(String upc) {

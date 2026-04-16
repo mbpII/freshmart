@@ -18,9 +18,12 @@ public class PercentOffStrategy implements SalePricingStrategy {
         if (inputValue == null) {
             throw new IllegalArgumentException("Percent off value is required");
         }
-        if (inputValue.compareTo(BigDecimal.ZERO) <= 0 || inputValue.compareTo(HUNDRED) >= 0) {
+
+        BigDecimal roundedValue = inputValue.setScale(2, RoundingMode.HALF_UP);
+        if (roundedValue.compareTo(BigDecimal.ZERO) <= 0 || roundedValue.compareTo(HUNDRED) >= 0) {
             throw new IllegalArgumentException("Percent off must be greater than 0 and less than 100");
         }
-        return inputValue.setScale(2, RoundingMode.HALF_UP);
+
+        return roundedValue;
     }
 }

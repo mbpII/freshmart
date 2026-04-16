@@ -4,7 +4,7 @@ export const productFormSchema = z
   .object({
     productName: z.string().trim().min(1, 'Product name is required'),
     category: z.string().trim().min(1, 'Category is required'),
-    upc: z.string().trim().min(1, 'UPC is required').max(12, 'UPC must not exceed 12 characters'),
+    upc: z.string().trim().min(1, 'UPC is required').max(50, 'UPC must not exceed 50 characters'),
     productType: z.enum(['food', 'non-food']),
     quantityOnHand: z.number().min(0, 'Initial quantity must be 0 or greater'),
     retailPrice: z.number().gt(0, 'Retail price must be greater than 0'),

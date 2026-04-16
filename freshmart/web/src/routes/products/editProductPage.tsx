@@ -52,11 +52,21 @@ function ProductEditorForm({
   isManager,
 }: ProductEditorFormProps) {
   const navigate = useNavigate();
+
+  const navigateBackWithFallback = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+    navigate(isEditMode ? `/products/${productId}` : '/');
+  };
+
   const { submit, isPending, error } = useProductEditor({
     productId,
     isEditMode,
     isManager,
     navigate,
+    onEditSuccess: navigateBackWithFallback,
   });
 
   const {
@@ -73,6 +83,7 @@ function ProductEditorForm({
   const productType = watch('productType');
   const isOnSale = watch('isOnSale');
   const saleMode = watch('saleMode');
+  const saleValue = watch('saleValue');
 
   return (
     <form onSubmit={handleSubmit(submit)} className="space-y-6">
@@ -96,7 +107,7 @@ function ProductEditorForm({
           <InputField
             label="UPC *"
             placeholder="Enter UPC code"
-            maxLength={12}
+            maxLength={50}
             registration={register('upc')}
             error={errors.upc?.message}
           />
@@ -213,7 +224,7 @@ function ProductEditorForm({
                     step="0.01"
                     placeholder="0.00"
                     disabled={saleMode !== 'price'}
-                    value={saleMode === 'price' ? watch('saleValue') : ''}
+                    value={saleMode === 'price' ? saleValue : ''}
                     onChange={(e) => {
                       setValue('saleMode', 'price', { shouldValidate: true });
                       setValue('saleValue', e.target.value, { shouldValidate: true });
@@ -230,7 +241,7 @@ function ProductEditorForm({
                     step="0.01"
                     placeholder="10"
                     disabled={saleMode !== 'percent'}
-                    value={saleMode === 'percent' ? watch('saleValue') : ''}
+                    value={saleMode === 'percent' ? saleValue : ''}
                     onChange={(e) => {
                       setValue('saleMode', 'percent', { shouldValidate: true });
                       setValue('saleValue', e.target.value, { shouldValidate: true });
@@ -269,7 +280,7 @@ function ProductEditorForm({
               ? 'Save Changes'
               : 'Add to Inventory'}
         </Button>
-        <Button variant="outline" render={<Link to="/" />}>
+        <Button type="button" variant="outline" onClick={navigateBackWithFallback}>
           Cancel
         </Button>
       </div>
@@ -281,7 +292,9 @@ export default function ProductEditorPage() {
   const { id } = useParams<{ id: string }>();
   const productId = Number(id);
   const isEditMode = Number.isFinite(productId) && productId > 0;
-  const { data: product, isLoading: isLoadingProduct } = useProduct(productId);
+  const { data: product, isLoading: isLoadingProduct } = useProduct(productId, {
+    enabled: isEditMode,
+  });
   const isManager = useDevModeStore((state) => state.isManager);
 
   if (isEditMode && isLoadingProduct) {

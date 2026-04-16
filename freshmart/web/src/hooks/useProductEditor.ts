@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { NavigateFunction } from 'react-router-dom';
 import {
   useCreateProduct,
@@ -15,6 +16,7 @@ type UseProductEditorOptions = {
   isEditMode: boolean;
   isManager: boolean;
   navigate: NavigateFunction;
+  onEditSuccess?: () => void;
 };
 
 /**
@@ -26,13 +28,19 @@ export function useProductEditor({
   isEditMode,
   isManager,
   navigate,
+  onEditSuccess,
 }: UseProductEditorOptions) {
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const markOnSale = useMarkOnSale();
+  const [saleError, setSaleError] = useState<Error | null>(null);
 
-  const isPending = createProduct.isPending || updateProduct.isPending;
-  const error = (isEditMode ? updateProduct.error : createProduct.error) as Error | null;
+  const isPending =
+    createProduct.isPending || updateProduct.isPending || markOnSale.isPending;
+  const mutationError = (isEditMode ? updateProduct.error : createProduct.error) as
+    | Error
+    | null;
+  const error = mutationError ?? saleError;
 
   const applyMarkOnSale = async (id: number, values: ProductFormData) => {
     if (!isManager || !values.isOnSale || !values.saleValue) return;
@@ -43,12 +51,23 @@ export function useProductEditor({
   };
 
   const submit = (values: ProductFormData): void => {
+    setSaleError(null);
+
     if (isEditMode) {
       updateProduct.mutate(
         { id: productId, data: buildUpdateProductInput(values) },
         {
           onSuccess: async () => {
-            await applyMarkOnSale(productId, values);
+            try {
+              await applyMarkOnSale(productId, values);
+            } catch (err) {
+              setSaleError(err as Error);
+              return;
+            }
+            if (onEditSuccess) {
+              onEditSuccess();
+              return;
+            }
             navigate(`/products/${productId}`);
           },
         },
@@ -58,7 +77,12 @@ export function useProductEditor({
 
     createProduct.mutate(buildCreateProductInput(values), {
       onSuccess: async (created) => {
-        await applyMarkOnSale(created.productId, values);
+        try {
+          await applyMarkOnSale(created.productId, values);
+        } catch (err) {
+          setSaleError(err as Error);
+          return;
+        }
         navigate('/');
       },
     });
